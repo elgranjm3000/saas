@@ -48,10 +48,15 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Servicios de API
+// =============================================
+// 👥 AUTHENTICATION & USERS API
+// =============================================
 export const authAPI = {
   login: (credentials: { username: string; password: string; company_tax_id: string }) =>
     apiClient.post('/auth/login', credentials),
+  
+  loginLegacy: (username: string, password: string) =>
+    apiClient.post('/login/', null, { params: { username, password } }),
   
   registerCompany: (data: any) =>
     apiClient.post('/auth/register-company', data),
@@ -64,8 +69,17 @@ export const authAPI = {
   
   getMe: () =>
     apiClient.get('/users/me'),
+
+  updateProfile: (data: any) =>
+    apiClient.put('/users/me', data),
+
+  createUser: (username: string, email: string, password: string) =>
+    apiClient.post('/users/', null, { params: { username, email, password } }),
 };
 
+// =============================================
+// 📦 PRODUCTS API
+// =============================================
 export const productsAPI = {
   getAll: (params?: { skip?: number; limit?: number }) =>
     apiClient.get('/products', { params }),
@@ -87,8 +101,23 @@ export const productsAPI = {
   
   getLowStock: (threshold?: number) =>
     apiClient.get('/products/low-stock', { params: { threshold } }),
+
+  getSummary: () =>
+    apiClient.get('/products/stats/summary'),
+
+  bulkUpdate: (updates: any[]) =>
+    apiClient.post('/products/bulk-update', updates),
+
+  getInventoryMovements: (productId: number) =>
+    apiClient.get(`/products/${productId}/inventory_movements`),
+
+  getByCategory: (categoryId: number) =>
+    apiClient.get(`/products/category/${categoryId}`),
 };
 
+// =============================================
+// 📄 INVOICES API
+// =============================================
 export const invoicesAPI = {
   getAll: (params?: { skip?: number; limit?: number; status?: string }) =>
     apiClient.get('/invoices', { params }),
@@ -104,8 +133,89 @@ export const invoicesAPI = {
   
   delete: (id: number) =>
     apiClient.delete(`/invoices/${id}`),
+
+  getSummary: () =>
+    apiClient.get('/invoices/stats/summary'),
+
+  getPending: () =>
+    apiClient.get('/invoices/pending'),
+
+  createCreditMovement: (invoiceId: number, data: any) =>
+    apiClient.post(`/invoices/${invoiceId}/credit-movements`, data),
 };
 
+// =============================================
+// 💰 BUDGETS API
+// =============================================
+export const budgetsAPI = {
+  create: (data: any) =>
+    apiClient.post('/budgets', data),
+
+  confirm: (budgetId: number) =>
+    apiClient.put(`/budgets/${budgetId}/confirm`),
+};
+
+// =============================================
+// 🛒 PURCHASES API
+// =============================================
+export const purchasesAPI = {
+  getAll: (params?: { skip?: number; limit?: number; status?: string }) =>
+    apiClient.get('/purchases', { params }),
+  
+  getById: (id: number) =>
+    apiClient.get(`/purchases/${id}`),
+  
+  create: (data: any) =>
+    apiClient.post('/purchases', data),
+  
+  update: (id: number, data: any) =>
+    apiClient.put(`/purchases/${id}`, data),
+  
+  delete: (id: number) =>
+    apiClient.delete(`/purchases/${id}`),
+
+  updateStatus: (id: number, status: string) =>
+    apiClient.put(`/purchases/${id}/status`, null, { params: { status } }),
+
+  getSummary: () =>
+    apiClient.get('/purchases/stats/summary'),
+
+  getPending: () =>
+    apiClient.get('/purchases/pending'),
+};
+
+// =============================================
+// 🔄 INVENTORY MOVEMENTS API
+// =============================================
+export const inventoryMovementsAPI = {
+  getAll: (params?: { skip?: number; limit?: number; movement_type?: string; product_id?: number }) =>
+    apiClient.get('/inventory/movements', { params }),
+
+  getById: (id: number) =>
+    apiClient.get(`/inventory/movements/${id}`),
+
+  create: (data: any) =>
+    apiClient.post('/inventory/movements', data),
+
+  getByProduct: (productId: number) =>
+    apiClient.get(`/inventory/movements/product/${productId}`),
+
+  getByInvoice: (invoiceId: number) =>
+    apiClient.get(`/inventory/movements/invoice/${invoiceId}`),
+
+  getSummary: () =>
+    apiClient.get('/inventory/movements/stats/summary'),
+
+  getByType: () =>
+    apiClient.get('/inventory/movements/stats/by-type'),
+
+  getRecent: (params?: { days?: number; limit?: number }) =>
+    apiClient.get('/inventory/movements/recent', { params }),
+};
+
+// =============================================
+// 🏭 WAREHOUSES API
+// =============================================
 export const warehousesAPI = {
   getAll: (params?: { skip?: number; limit?: number }) =>
     apiClient.get('/warehouses', { params }),
@@ -121,4 +231,175 @@ export const warehousesAPI = {
   
   delete: (id: number) =>
     apiClient.delete(`/warehouses/${id}`),
+
+  getInventoryMovements: (warehouseId: number) =>
+    apiClient.get(`/warehouses/${warehouseId}/inventory_movements`),
+
+  getSummary: () =>
+    apiClient.get('/warehouses/stats/summary'),
+
+  getProducts: (warehouseId: number) =>
+    apiClient.get(`/warehouses/${warehouseId}/products`),
+
+  getLowStock: (warehouseId: number, threshold?: number) =>
+    apiClient.get(`/warehouses/${warehouseId}/low-stock`, { params: { threshold } }),
 };
+
+// =============================================
+// 📦 WAREHOUSE PRODUCTS (STOCK) API
+// =============================================
+export const warehouseProductsAPI = {
+  getAll: (params?: { skip?: number; limit?: number }) =>
+    apiClient.get('/warehouse-products', { params }),
+
+  getByWarehouseAndProduct: (warehouseId: number, productId: number) =>
+    apiClient.get(`/warehouse-products/${warehouseId}/${productId}`),
+
+  createOrUpdate: (data: any) =>
+    apiClient.post('/warehouse-products', data),
+
+  updateStock: (warehouseId: number, productId: number, data: any) =>
+    apiClient.put(`/warehouse-products/${warehouseId}/${productId}`, data),
+
+  delete: (warehouseId: number, productId: number) =>
+    apiClient.delete(`/warehouse-products/${warehouseId}/${productId}`),
+
+  getByWarehouse: (warehouseId: number) =>
+    apiClient.get(`/warehouse-products/warehouse/${warehouseId}`),
+
+  getByProduct: (productId: number) =>
+    apiClient.get(`/warehouse-products/product/${productId}`),
+
+  getLowStockAll: (threshold?: number) =>
+    apiClient.get('/warehouse-products/low-stock', { params: { threshold } }),
+
+  transferStock: (fromWarehouseId: number, toWarehouseId: number, productId: number, quantity: number) =>
+    apiClient.post('/warehouse-products/transfer', null, {
+      params: { from_warehouse_id: fromWarehouseId, to_warehouse_id: toWarehouseId, product_id: productId, quantity }
+    }),
+
+  adjustStock: (warehouseId: number, productId: number, adjustment: number, reason: string) =>
+    apiClient.post('/warehouse-products/adjust-stock', null, {
+      params: { warehouse_id: warehouseId, product_id: productId, adjustment, reason }
+    }),
+};
+
+// =============================================
+// 🚚 SUPPLIERS API (PARA IMPLEMENTAR EN BACKEND)
+// =============================================
+export const suppliersAPI = {
+  getAll: (params?: { skip?: number; limit?: number }) =>
+    apiClient.get('/suppliers', { params }),
+  
+  getById: (id: number) =>
+    apiClient.get(`/suppliers/${id}`),
+  
+  create: (data: any) =>
+    apiClient.post('/suppliers', data),
+  
+  update: (id: number, data: any) =>
+    apiClient.put(`/suppliers/${id}`, data),
+  
+  delete: (id: number) =>
+    apiClient.delete(`/suppliers/${id}`),
+
+  search: (q: string) =>
+    apiClient.get('/suppliers/search', { params: { q } }),
+
+  getSummary: () =>
+    apiClient.get('/suppliers/stats/summary'),
+
+  getActive: () =>
+    apiClient.get('/suppliers/active'),
+
+  getPurchases: (supplierId: number) =>
+    apiClient.get(`/suppliers/${supplierId}/purchases`),
+};
+
+// =============================================
+// 👥 CUSTOMERS API (PARA IMPLEMENTAR EN BACKEND)
+// =============================================
+export const customersAPI = {
+  getAll: (params?: { skip?: number; limit?: number }) =>
+    apiClient.get('/customers', { params }),
+  
+  getById: (id: number) =>
+    apiClient.get(`/customers/${id}`),
+  
+  create: (data: any) =>
+    apiClient.post('/customers', data),
+  
+  update: (id: number, data: any) =>
+    apiClient.put(`/customers/${id}`, data),
+  
+  delete: (id: number) =>
+    apiClient.delete(`/customers/${id}`),
+
+  search: (q: string) =>
+    apiClient.get('/customers/search', { params: { q } }),
+
+  getSummary: () =>
+    apiClient.get('/customers/stats/summary'),
+
+  getActive: () =>
+    apiClient.get('/customers/active'),
+
+  getInvoices: (customerId: number) =>
+    apiClient.get(`/customers/${customerId}/invoices`),
+
+  updateCreditLimit: (customerId: number, creditLimit: number) =>
+    apiClient.put(`/customers/${customerId}/credit-limit`, { credit_limit: creditLimit }),
+
+  getCreditStatus: (customerId: number) =>
+    apiClient.get(`/customers/${customerId}/credit-status`),
+};
+
+// =============================================
+// 📊 CATEGORIES API (PARA IMPLEMENTAR EN BACKEND)
+// =============================================
+export const categoriesAPI = {
+  getAll: () =>
+    apiClient.get('/categories'),
+  
+  getById: (id: number) =>
+    apiClient.get(`/categories/${id}`),
+  
+  create: (data: any) =>
+    apiClient.post('/categories', data),
+  
+  update: (id: number, data: any) =>
+    apiClient.put(`/categories/${id}`, data),
+  
+  delete: (id: number) =>
+    apiClient.delete(`/categories/${id}`),
+};
+
+// =============================================
+// 🔐 PROTECTED ROUTES API
+// =============================================
+export const protectedAPI = {
+  protected: () =>
+    apiClient.get('/protected'),
+
+  adminOnly: () =>
+    apiClient.get('/admin-only'),
+
+  managerOnly: () =>
+    apiClient.get('/manager-only'),
+};
+
+// =============================================
+// 🏥 HEALTH CHECK API
+// =============================================
+export const healthAPI = {
+  check: () =>
+    apiClient.get('/health'),
+
+  root: () =>
+    apiClient.get('/'),
+};
+
+// =============================================
+// EXPORT DEFAULT API CLIENT
+// =============================================
+export default apiClient;

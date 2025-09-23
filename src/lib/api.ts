@@ -11,10 +11,20 @@ export const apiClient = axios.create({
   },
 });
 
+const getCookie = (name: string): string | null => {
+  if (typeof window === 'undefined') return null
+  
+  return document.cookie.split('; ').reduce((r, v) => {
+    const parts = v.split('=')
+    return parts[0] === name ? decodeURIComponent(parts[1]) : r
+  }, null as string | null)
+}
+
 // Interceptor para incluir el token de autorización
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = getCookie('access_token') || localStorage.getItem('access_token')
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

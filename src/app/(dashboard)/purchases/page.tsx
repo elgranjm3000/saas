@@ -23,140 +23,42 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { purchasesAPI } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface Purchase {
   id: number;
   company_id: number;
   supplier_id: number;
-  warehouse_id: number;
+  warehouse_id?: number;
   purchase_number: string;
   date: string;
+  expected_delivery_date?: string;
   total_amount: number;
   status: 'pending' | 'approved' | 'received' | 'cancelled';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  supplier?: {
+    id: number;
+    name: string;
+    email: string;
+  };
   items: PurchaseItem[];
 }
 
 interface PurchaseItem {
+  id?: number;
   product_id: number;
   quantity: number;
   price_per_unit: number;
   total_price: number;
+  product?: {
+    id: number;
+    name: string;
+    sku: string;
+  };
 }
-
-// API functions usando tu endpoint real
-const purchasesAPI = {
-  getAll: async (params?: { skip?: number; limit?: number; status?: string }): Promise<{ data: Purchase[] }> => {
-    const token = localStorage.getItem('access_token');
-    const queryParams = new URLSearchParams();
-    if (params?.skip) queryParams.append('skip', params.skip.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.status) queryParams.append('status', params.status);
-    
-    const response = await fetch(`/api/v1/purchases?${queryParams}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch purchases');
-    const data = await response.json();
-    return { data };
-  },
-
-  getById: async (id: number): Promise<{ data: Purchase }> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`/api/v1/purchases/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch purchase');
-    const data = await response.json();
-    return { data };
-  },
-
-  create: async (purchase: any): Promise<{ data: Purchase }> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch('/api/v1/purchases', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(purchase),
-    });
-    if (!response.ok) throw new Error('Failed to create purchase');
-    const data = await response.json();
-    return { data };
-  },
-
-  update: async (id: number, purchase: any): Promise<{ data: Purchase }> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`/api/v1/purchases/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(purchase),
-    });
-    if (!response.ok) throw new Error('Failed to update purchase');
-    const data = await response.json();
-    return { data };
-  },
-
-  delete: async (id: number): Promise<void> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`/api/v1/purchases/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to delete purchase');
-  },
-
-  updateStatus: async (id: number, status: string): Promise<void> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`/api/v1/purchases/${id}/status?status=${status}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to update purchase status');
-  },
-
-  getSummary: async (): Promise<{ data: any }> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch('/api/v1/purchases/stats/summary', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch purchases summary');
-    const data = await response.json();
-    return { data };
-  },
-
-  getPending: async (): Promise<{ data: Purchase[] }> => {
-    const token = localStorage.getItem('access_token');
-    const response = await fetch('/api/v1/purchases/pending', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch pending purchases');
-    const data = await response.json();
-    return { data };
-  }
-};
 
 const PurchasesPage = () => {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -183,36 +85,6 @@ const PurchasesPage = () => {
       setPurchases(response.data);
     } catch (error) {
       console.error('Error fetching purchases:', error);
-      // Datos mock en caso de error de API
-      const mockData: Purchase[] = [
-        {
-          id: 1,
-          company_id: 1,
-          supplier_id: 1,
-          warehouse_id: 1,
-          purchase_number: 'PO-2024-001',
-          date: '2024-03-15T10:00:00Z',
-          total_amount: 15000.00,
-          status: 'pending',
-          items: [
-            { product_id: 1, quantity: 10, price_per_unit: 1500, total_price: 15000 }
-          ]
-        },
-        {
-          id: 2,
-          company_id: 1,
-          supplier_id: 2,
-          warehouse_id: 1,
-          purchase_number: 'PO-2024-002',
-          date: '2024-03-14T14:30:00Z',
-          total_amount: 8500.00,
-          status: 'received',
-          items: [
-            { product_id: 2, quantity: 5, price_per_unit: 1700, total_price: 8500 }
-          ]
-        }
-      ];
-      setPurchases(mockData);
     } finally {
       setLoading(false);
     }
@@ -288,7 +160,8 @@ const PurchasesPage = () => {
   const filteredPurchases = purchases
     .filter(purchase =>
       purchase.purchase_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.total_amount.toString().includes(searchTerm)
+      purchase.total_amount.toString().includes(searchTerm) ||
+      (purchase.supplier?.name && purchase.supplier.name.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .sort((a, b) => {
       let aValue: any = a[sortBy];
@@ -351,13 +224,21 @@ const PurchasesPage = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             {purchase.purchase_number}
           </h3>
-          <div className="flex items-center text-sm text-gray-500 mb-2">
-            <Calendar className="w-3 h-3 mr-1" />
-            {formatDate(purchase.date)}
-          </div>
-          <div className="flex items-center text-sm text-gray-500">
-            <Package className="w-3 h-3 mr-1" />
-            {purchase.items.length} productos
+          <div className="space-y-1">
+            <div className="flex items-center text-sm text-gray-500">
+              <Calendar className="w-3 h-3 mr-2" />
+              {formatDate(purchase.date)}
+            </div>
+            <div className="flex items-center text-sm text-gray-500">
+              <Package className="w-3 h-3 mr-2" />
+              {purchase.items.length} productos
+            </div>
+            {purchase.supplier && (
+              <div className="flex items-center text-sm text-gray-500">
+                <Truck className="w-3 h-3 mr-2" />
+                {purchase.supplier.name}
+              </div>
+            )}
           </div>
         </div>
         
@@ -487,7 +368,7 @@ const PurchasesPage = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Buscar por número de compra o monto..."
+                placeholder="Buscar por número de compra, monto o proveedor..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-gray-50/80 border border-gray-200/60 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
@@ -582,6 +463,7 @@ const PurchasesPage = () => {
                   </th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700">Número</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700">Fecha</th>
+                  <th className="text-left py-4 px-6 font-medium text-gray-700">Proveedor</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700">Productos</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700">Total</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700">Estado</th>
@@ -610,6 +492,9 @@ const PurchasesPage = () => {
                       </td>
                       <td className="py-4 px-6 text-gray-900">
                         {formatDate(purchase.date)}
+                      </td>
+                      <td className="py-4 px-6 text-gray-900">
+                        {purchase.supplier?.name || '-'}
                       </td>
                       <td className="py-4 px-6 text-gray-900">
                         {purchase.items.length} productos

@@ -24,7 +24,7 @@ const getCookie = (name: string): string | null => {
 apiClient.interceptors.request.use(
   (config) => {
     const token = getCookie('access_token') || localStorage.getItem('access_token')
-
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -326,8 +326,16 @@ export const customersAPI = {
   getById: (id: number) =>
     apiClient.get(`/customers/${id}`),
   
-  create: (data: any) =>
-    apiClient.post('/customers', data),
+  create: async (data: any) => {
+    try {
+      const response = await apiClient.post('/customers', data);
+      console.log('✅ Success:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
   
   update: (id: number, data: any) =>
     apiClient.put(`/customers/${id}`, data),

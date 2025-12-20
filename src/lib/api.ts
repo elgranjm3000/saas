@@ -33,6 +33,7 @@ apiClient.interceptors.request.use(
     
     if (tokenFromStorage) {
       console.log('🔐 Request: Using token from localStorage')
+      
       config.headers.Authorization = `Bearer ${tokenFromStorage}`;
     } else {
       console.log('🔐 Request: Token will be sent via HTTP-only cookies (withCredentials: true)')
@@ -141,13 +142,13 @@ export const productsAPI = {
 // =============================================
 export const invoicesAPI = {
   getAll: (params?: { skip?: number; limit?: number; status?: string }) =>
-    apiClient.get('/invoices', { params }),
+    apiClient.get('/invoices/', { params }),
   
   getById: (id: number) =>
     apiClient.get(`/invoices/${id}`),
   
   create: (data: any) =>
-    apiClient.post('/invoices', data),
+    apiClient.post('/invoices/', data),
   
   update: (id: number, data: any) =>
     apiClient.put(`/invoices/${id}`, data),
@@ -156,10 +157,10 @@ export const invoicesAPI = {
     apiClient.delete(`/invoices/${id}`),
 
   getSummary: () =>
-    apiClient.get('/invoices/stats/summary'),
+    apiClient.get('/invoices/stats/summary/'),
 
   getPending: () =>
-    apiClient.get('/invoices/pending'),
+    apiClient.get('/invoices/pending/'),
 
   createCreditMovement: (invoiceId: number, data: any) =>
     apiClient.post(`/invoices/${invoiceId}/credit-movements`, data),

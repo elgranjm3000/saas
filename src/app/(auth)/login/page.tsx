@@ -42,9 +42,9 @@ export default function LoginPage() {
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
           <div className="px-8 pt-12 pb-8 text-center">
             <img
-              src="/logo.png"
-              alt="Logo"
-              className="h-20 w-auto object-contain mx-auto mb-6"
+              src="/logo.webp"
+              alt="Chrystal Software Administrativo"
+              className="h-32 w-auto object-contain mx-auto mb-6"
             />
             <h1 className="text-3xl font-light text-gray-900 mb-3">Bienvenido</h1>
             <p className="text-gray-500 text-sm font-light">Accede a tu espacio de trabajo</p>
@@ -140,7 +140,7 @@ export default function LoginPage() {
 
         <div className="text-center mt-8">
           <p className="text-xs text-gray-400 font-light">
-            © 2024 ERP System • Todos los derechos reservados
+            © 2026 Chrystal Software Administrativo • Todos los derechos reservados
           </p>
         </div>
       </div>

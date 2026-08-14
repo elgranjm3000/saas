@@ -88,13 +88,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center">
             <img
-              src="/logo.png"
-              alt="Logo"
-              className="h-8 w-auto object-contain mr-3"
+              src="/logo.webp"
+              alt="Chrystal Software Administrativo"
+              className="h-12 w-auto object-contain"
             />
-            <div>
-              <span className="text-base font-semibold text-gray-900">ERP</span>
-            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}

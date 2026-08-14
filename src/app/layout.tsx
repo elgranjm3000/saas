@@ -6,7 +6,7 @@ import { ToastContainer } from '@/components/ui/Toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'ERP System - Gestión Empresarial',
+  title: 'Chrystal Software Administrativo',
   description: 'Sistema de planificación de recursos empresariales',
   icons: {
     icon: '/favicon.png',

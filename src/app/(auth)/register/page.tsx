@@ -64,9 +64,9 @@ export default function RegisterPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100 shadow-xl shadow-gray-500/10 p-8">
           <div className="text-center mb-8">
             <img
-              src="/logo.png"
-              alt="Logo"
-              className="h-16 w-auto object-contain mx-auto mb-4"
+              src="/logo.webp"
+              alt="Chrystal Software Administrativo"
+              className="h-24 w-auto object-contain mx-auto mb-4"
             />
             <h1 className="text-2xl font-light text-gray-900 mb-2">Crear Cuenta</h1>
             <p className="text-gray-500 text-sm">Registra tu empresa y tu usuario administrador</p>

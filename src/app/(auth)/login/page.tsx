@@ -1,184 +1,87 @@
 'use client'
-import React, { useState } from 'react';
-import { Eye, EyeOff, Building2, User, Lock, ArrowRight } from 'lucide-react';
-import { useAuthStore } from '@/store/auth-store';
-import { useRouter } from 'next/navigation';
-import { apiClient } from '@/lib/api';
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
+import { useAuthStore } from '@/store/auth-store'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [focusedField, setFocusedField] = useState('');
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [formData, setFormData] = useState({ email: '', password: '' })
 
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    company_tax_id: '',
-  });
-
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const router = useRouter();
+  const signIn = useAuthStore((state) => state.signIn)
+  const router = useRouter()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
     try {
-      const requestData = {
-        username: formData.username,
-        password: formData.password,
-        company_tax_id: formData.company_tax_id || undefined
-      };
-
-      console.log('🔐 Sending login request:', JSON.stringify(requestData, null, 2));
-      console.log('🌐 URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/login`);
-
-      const response = await apiClient.post('/auth/login', requestData);
-
-      console.log('✅ Login response:', response.data);
-      console.log('✅ Response status:', response.status);
-      const { access_token, user } = response.data;
-
-      // Set auth in store (saves to localStorage via persist middleware)
-      setAuth(user, access_token);
-      console.log('✅ Auth set in store');
-
-      // Also save token to cookie for middleware to read
-      if (typeof document !== 'undefined') {
-        document.cookie = `access_token=${access_token}; path=/; max-age=604800; SameSite=Lax`;
-        console.log('✅ Token saved to cookie');
-      }
-
-      // Verify cookie was saved
-      console.log('🍪 Current cookies:', document.cookie);
-
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error('❌ Login error:', error);
-      console.error('❌ Error response:', error.response);
-      console.error('❌ Error data:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
-      console.error('❌ Error message:', error.message);
-
-      // Mostrar error detallado para debug
-      const errorMessage = error.response?.data?.detail ||
-                          error.response?.data?.message ||
-                          error.response?.data?.error ||
-                          (error.response?.status === 500 ? 'Error interno del servidor (500). Verifica que el backend esté corriendo correctamente.' : error.message) ||
-                          'Credenciales incorrectas. Inténtalo de nuevo.';
-
-      setError(errorMessage);
+      await signIn(formData.email, formData.password)
+      router.push('/dashboard')
+    } catch (err: any) {
+      setError(err?.message || 'Credenciales incorrectas. Inténtalo de nuevo.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative elements */}
       <div className="absolute top-20 left-20 w-32 h-32 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
       <div className="absolute bottom-20 right-20 w-40 h-40 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-50"></div>
-      <div className="absolute top-40 right-40 w-24 h-24 bg-gray-200 rounded-full mix-blend-multiply filter blur-xl opacity-60"></div>
-      
+
       <div className="relative w-full max-w-md z-10">
-        {/* Main Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
-          {/* Header */}
           <div className="px-8 pt-12 pb-8 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-6 shadow-lg transform transition-transform duration-300 hover:scale-105">
-              <Building2 className="w-9 h-9 text-white" />
-            </div>
-            
-            <h1 className="text-3xl font-light text-gray-900 mb-3">
-              Bienvenido
-            </h1>
-            <p className="text-gray-500 text-sm font-light">
-              Accede a tu espacio de trabajo
-            </p>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-20 w-auto object-contain mx-auto mb-6"
+            />
+            <h1 className="text-3xl font-light text-gray-900 mb-3">Bienvenido</h1>
+            <p className="text-gray-500 text-sm font-light">Accede a tu espacio de trabajo</p>
           </div>
 
-          {/* Form */}
           <div className="px-8 pb-12">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Username Field */}
-              <div className="group">
+              <div>
                 <label className="block text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">
-                  Usuario
+                  Email
                 </label>
-                <div className={`relative transition-all duration-200 ${
-                  focusedField === 'username' ? 'transform scale-[1.01]' : ''
-                }`}>
-                  <User className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
-                    focusedField === 'username' ? 'text-blue-500' : 'text-gray-400'
-                  }`} />
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    type="text"
-                    name="username"
-                    value={formData.username}
+                    type="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleInputChange}
-                    onFocus={() => setFocusedField('username')}
-                    onBlur={() => setFocusedField('')}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-900 placeholder-gray-400 text-sm outline-none"
-                    placeholder="Ingresa tu usuario"
+                    placeholder="tu@empresa.com"
                     required
                     disabled={isLoading}
                   />
                 </div>
               </div>
 
-              {/* Company Tax ID Field */}
-              <div className="group">
-                <label className="block text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">
-                  NIT/RUC Empresa
-                </label>
-                <div className={`relative transition-all duration-200 ${
-                  focusedField === 'company_tax_id' ? 'transform scale-[1.01]' : ''
-                }`}>
-                  <Building2 className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
-                    focusedField === 'company_tax_id' ? 'text-blue-500' : 'text-gray-400'
-                  }`} />
-                  <input
-                    type="text"
-                    name="company_tax_id"
-                    value={formData.company_tax_id}
-                    onChange={handleInputChange}
-                    onFocus={() => setFocusedField('company_tax_id')}
-                    onBlur={() => setFocusedField('')}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-900 placeholder-gray-400 text-sm outline-none"
-                    placeholder="123456789-0"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              {/* Password Field */}
-              <div className="group">
+              <div>
                 <label className="block text-xs font-medium text-gray-600 mb-3 uppercase tracking-wider">
                   Contraseña
                 </label>
-                <div className={`relative transition-all duration-200 ${
-                  focusedField === 'password' ? 'transform scale-[1.01]' : ''
-                }`}>
-                  <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
-                    focusedField === 'password' ? 'text-blue-500' : 'text-gray-400'
-                  }`} />
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField('')}
                     className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-900 placeholder-gray-400 text-sm outline-none"
                     placeholder="••••••••"
                     required
@@ -187,7 +90,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1 outline-none"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 outline-none"
                     disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -195,14 +98,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
                   <p className="text-red-600 text-sm font-medium">{error}</p>
                 </div>
               )}
 
-              {/* Submit Button */}
               <div className="pt-4">
                 <button
                   type="submit"
@@ -225,21 +126,18 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* Forgot Password Link */}
               <div className="text-center pt-2">
-                <a 
-                  href="#" 
-                  className="text-xs text-gray-500 hover:text-gray-700 transition-colors duration-200 font-medium outline-none focus:text-gray-700"
-                  tabIndex={isLoading ? -1 : 0}
-                >
-                  ¿Olvidaste tu contraseña?
-                </a>
+                <p className="text-xs text-gray-500">
+                  ¿No tienes cuenta?{' '}
+                  <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                    Crea una empresa
+                  </Link>
+                </p>
               </div>
             </form>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-xs text-gray-400 font-light">
             © 2024 ERP System • Todos los derechos reservados
@@ -247,5 +145,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

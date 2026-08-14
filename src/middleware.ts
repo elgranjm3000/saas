@@ -1,46 +1,49 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('access_token')?.value
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({ request })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const { pathname } = request.nextUrl
-
-  console.log('🔍 Middleware:', {
-    path: pathname,
-    hasToken: !!token,
-    tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
-  })
-
   const publicPaths = ['/login', '/register', '/']
 
-  // Si la ruta es pública
+  if (user) {
+    if (pathname === '/login' || pathname === '/register') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return response
+  }
+
   if (publicPaths.includes(pathname)) {
-    // Si el usuario tiene token y está en login → ir a dashboard
-    if (token && pathname === '/login') {
-      console.log('✅ Middleware: User authenticated, redirecting to dashboard')
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-    // Si el usuario tiene token y está en register → ir a dashboard
-    if (token && pathname === '/register') {
-      console.log('✅ Middleware: User authenticated, redirecting to dashboard')
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-    console.log('✅ Middleware: Public path, allowing access')
-    return NextResponse.next()
+    return response
   }
 
-  // Para rutas protegidas sin token
-  if (!token) {
-    console.log('❌ Middleware: No token found, redirecting to login')
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  console.log('✅ Middleware: Token found, allowing access to', pathname)
-  return NextResponse.next()
+  return NextResponse.redirect(new URL('/login', request.url))
 }
 
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 }

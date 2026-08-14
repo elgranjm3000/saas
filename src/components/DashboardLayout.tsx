@@ -87,9 +87,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
-              <Building2 className="w-4 h-4 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-8 w-auto object-contain mr-3"
+            />
             <div>
               <span className="text-base font-semibold text-gray-900">ERP</span>
             </div>

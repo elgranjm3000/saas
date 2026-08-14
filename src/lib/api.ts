@@ -1,998 +1,921 @@
-import axios from 'axios';
+import { createClient } from '@/lib/supabase/client'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+// Capa de datos migrada de FastAPI (axios) a Supabase.
+// Los métodos devuelven { data, error } como lo hace el cliente Supabase, de
+// modo que el patrón existente `const res = await xAPI.y(); res.data` siga
+// funcionando. company_id se inyecta en base de datos (trg_*_set_company).
 
-// Configuración del cliente Axios
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  // ✅ IMPORTANTE: Permitir que Axios envíe cookies con cada request
-  // Esto es necesario para que el servidor reciba el cookie HTTP-only
-  withCredentials: true,
-});
-
-const getCookie = (name: string): string | null => {
-  if (typeof window === 'undefined') return null
-  
-  return document.cookie.split('; ').reduce((r, v) => {
-    const parts = v.split('=')
-    return parts[0] === name ? decodeURIComponent(parts[1]) : r
-  }, null as string | null)
+let _client: ReturnType<typeof createClient> | null = null
+function db() {
+  if (!_client) _client = createClient()
+  return _client
 }
 
-// Interceptor para incluir el token de autorización
-apiClient.interceptors.request.use(
-  (config) => {
-    // Try to get token from localStorage (from Zustand persist storage)
-    let tokenFromStorage = null;
+function range(params?: { skip?: number; limit?: number }) {
+  const skip = params?.skip ?? 0
+  const limit = params?.limit ?? 1000
+  return { from: skip, to: skip + limit - 1 }
+}
 
-    if (typeof window !== 'undefined') {
-      // Try to get from Zustand persist storage
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
-        try {
-          const parsed = JSON.parse(authStorage);
-          tokenFromStorage = parsed?.state?.token;
-        } catch (e) {
-          console.error('Error parsing auth-storage:', e);
-        }
-      }
-
-      // Fallback to direct access_token
-      if (!tokenFromStorage) {
-        tokenFromStorage = localStorage.getItem('access_token');
-      }
-    }
-
-    if (tokenFromStorage) {
-      console.log('🔐 Request:', config.method?.toUpperCase(), config.url, '| Token:', tokenFromStorage.substring(0, 20) + '...');
-      config.headers.Authorization = `Bearer ${tokenFromStorage}`;
-    } else {
-      console.log('⚠️ Request:', config.method?.toUpperCase(), config.url, '| No token found in localStorage');
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+function notMigrated(name: string) {
+  return async () => {
+    throw new Error(`[Supabase] "${name}" aún no está migrado desde FastAPI`)
   }
-);
+}
 
-// Interceptor para manejar respuestas y errores
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      const url = error.config?.url || 'unknown';
+async function resolveCurrencyId(code: string): Promise<number | null> {
+  const { data } = await db()
+    .from('currencies')
+    .select('id')
+    .eq('code', code.toUpperCase())
+    .limit(1)
+  return data?.[0]?.id ?? null
+}
 
-      // Don't logout if it's the login endpoint itself
-      if (url.includes('/auth/login')) {
-        console.error('❌ Login failed:', error.response?.data);
-        return Promise.reject(error);
-      }
+const round2 = (n: number) => Math.round(n * 100) / 100
 
-      console.error('❌ Response: 401 Unauthorized on', url);
-
-      // Only logout once to prevent infinite loops
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        console.warn('⚠️ Authentication failed, logging out...');
-
-        // Limpiar todo el estado de autenticación
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('auth-storage');
-
-        // Limpiar cookies
-        document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-        document.cookie = 'user_data=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-
-        // Redirigir a login
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 100);
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+async function getUsdVesRate(manualRate?: number): Promise<{ rate: number | null; source: string }> {
+  if (manualRate != null) return { rate: manualRate, source: 'MANUAL' }
+  const usdId = await resolveCurrencyId('USD')
+  const vesId = await resolveCurrencyId('VES')
+  if (!usdId || !vesId) return { rate: null, source: 'BCV' }
+  const { data } = await db()
+    .from('daily_rates')
+    .select('*')
+    .eq('base_currency_id', usdId)
+    .eq('target_currency_id', vesId)
+    .order('rate_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return { rate: data?.exchange_rate ?? null, source: data?.source ?? 'BCV' }
+}
 
 // =============================================
-// 👥 AUTHENTICATION & USERS API
+// 👥 AUTH / USERS
 // =============================================
 export const authAPI = {
-  login: (credentials: { username: string; password: string; company_tax_id: string }) =>
-    apiClient.post('/auth/login', credentials),
-  
-  loginLegacy: (username: string, password: string) =>
-    apiClient.post('/login/', null, { params: { username, password } }),
-  
-  registerCompany: (data: any) =>
-    apiClient.post('/auth/register-company', data),
-  
-  checkCompanyTaxId: (taxId: string) =>
-    apiClient.get(`/auth/check-company-tax-id/${taxId}`),
-  
-  checkUsername: (username: string) =>
-    apiClient.get(`/auth/check-username/${username}`),
-  
-  getMe: () =>
-    apiClient.get('/users/me'),
+  login: notMigrated('authAPI.login (usa signIn del store)'),
+  loginLegacy: notMigrated('authAPI.loginLegacy'),
+  registerCompany: notMigrated('authAPI.registerCompany (usa /api/auth/register)'),
+  checkCompanyTaxId: notMigrated('authAPI.checkCompanyTaxId'),
+  checkUsername: notMigrated('authAPI.checkUsername'),
+  createUser: notMigrated('authAPI.createUser'),
 
-  updateProfile: (data: any) =>
-    apiClient.put('/users/me', data),
+  getMe: async () => {
+    const supabase = db()
+    const { data: auth } = await supabase.auth.getUser()
+    if (!auth.user) return { data: null, error: { message: 'No autenticado' } }
 
-  createUser: (username: string, email: string, password: string) =>
-    apiClient.post('/users/', null, { params: { username, email, password } }),
-};
+    const { data: appUser, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_id', auth.user.id)
+      .single()
+    if (error || !appUser) return { data: null, error }
+
+    const { data: company } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', appUser.company_id)
+      .single()
+
+    return { data: { ...appUser, company_name: company?.name ?? null }, error: null }
+  },
+
+  updateProfile: async (data: any) => {
+    const supabase = db()
+    const { data: auth } = await supabase.auth.getUser()
+    if (!auth.user) return { data: null, error: { message: 'No autenticado' } }
+
+    const profile: Record<string, any> = {}
+    if (data.username !== undefined) profile.username = data.username
+    if (data.full_name !== undefined) profile.full_name = data.full_name
+    if (data.phone !== undefined) profile.phone = data.phone
+    if (data.address !== undefined) profile.address = data.address
+
+    if (Object.keys(profile).length) {
+      const { error } = await supabase.from('users').update(profile).eq('auth_id', auth.user.id)
+      if (error) return { data: null, error }
+    }
+
+    if (data.email && data.email !== auth.user.email) {
+      await supabase.auth.updateUser({ email: data.email })
+    }
+
+    return authAPI.getMe()
+  },
+}
 
 // =============================================
-// 📦 PRODUCTS API
+// 📦 PRODUCTS
 // =============================================
 export const productsAPI = {
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/products', { params }),
-  
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db()
+      .from('products')
+      .select('*, category:categories(id, name)')
+      .order('id', { ascending: false })
+      .range(from, to)
+  },
+
   getById: (id: number) =>
-    apiClient.get(`/products/${id}`),
-  
-  create: (data: any) =>
-    apiClient.post('/products', data),
-  
+    db().from('products').select('*, category:categories(id, name)').eq('id', id).single(),
+
+  create: (data: any) => db().from('products').insert(data).select().single(),
+
   update: (id: number, data: any) =>
-    apiClient.put(`/products/${id}`, data),
-  
-  delete: (id: number) =>
-    apiClient.delete(`/products/${id}`),
-  
+    db().from('products').update(data).eq('id', id).select().single(),
+
+  delete: (id: number) => db().from('products').delete().eq('id', id),
+
   search: (q: string) =>
-    apiClient.get('/products/search', { params: { q } }),
-  
+    db().from('products').select('*, category:categories(id, name)').ilike('name', `%${q}%`),
+
   getLowStock: (threshold?: number) =>
-    apiClient.get('/products/low-stock', { params: { threshold } }),
+    db().from('products').select('*').lte('quantity', threshold ?? 10),
 
-  getSummary: () =>
-    apiClient.get('/products/stats/summary'),
+  getSummary: async () => {
+    const { count, error } = await db()
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+    return { data: { total: count ?? 0 }, error }
+  },
 
-  bulkUpdate: (updates: any[]) =>
-    apiClient.post('/products/bulk-update', updates),
+  bulkUpdate: async (updates: any[]) => {
+    const supabase = db()
+    const results = []
+    for (const u of updates) {
+      const { data, error } = await supabase.from('products').update(u).eq('id', u.id).select().single()
+      if (error) return { data: null, error }
+      results.push(data)
+    }
+    return { data: results, error: null }
+  },
 
   getInventoryMovements: (productId: number) =>
-    apiClient.get(`/products/${productId}/inventory_movements`),
+    db().from('inventory_movements').select('*').eq('product_id', productId),
 
   getByCategory: (categoryId: number) =>
-    apiClient.get(`/categories/${categoryId}/products`),
-};
+    db().from('products').select('*').eq('category_id', categoryId),
+}
 
 // =============================================
-// 📄 INVOICES API
+// 📄 INVOICES
 // =============================================
 export const invoicesAPI = {
-  getAll: (params?: { skip?: number; limit?: number; status?: string }) =>
-    apiClient.get('/invoices/', { params }),
-  
+  getAll: (params?: { skip?: number; limit?: number; status?: string }) => {
+    let q = db().from('invoices').select('*').order('id', { ascending: false })
+    if (params?.status) q = q.eq('status', params.status)
+    const { from, to } = range(params)
+    return q.range(from, to)
+  },
+
   getById: (id: number) =>
-    apiClient.get(`/invoices/${id}`),
-  
-  create: (data: any) =>
-    apiClient.post('/invoices/', data),
-  
+    db().from('invoices').select('*, items:invoice_items(*)').eq('id', id).single(),
+
+  create: (data: any) => db().from('invoices').insert(data).select().single(),
+
   update: (id: number, data: any) =>
-    apiClient.put(`/invoices/${id}`, data),
-  
-  delete: (id: number) =>
-    apiClient.delete(`/invoices/${id}`),
+    db().from('invoices').update(data).eq('id', id).select().single(),
 
-  getSummary: () =>
-    apiClient.get('/invoices/stats/summary/'),
+  delete: (id: number) => db().from('invoices').delete().eq('id', id),
 
-  getPending: () =>
-    apiClient.get('/invoices/pending/'),
-
+  getSummary: notMigrated('invoicesAPI.getSummary'),
+  getPending: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('invoices').select('*').eq('status', 'pendiente').range(from, to)
+  },
   createCreditMovement: (invoiceId: number, data: any) =>
-    apiClient.post(`/invoices/${invoiceId}/credit-movements`, data),
+    db().from('credit_movements').insert({ ...data, invoice_id: invoiceId }).select().single(),
 
-  // ✅ MULTI-MONEDA: Preview de factura con conversión USD→VES
-  preview: (data: {
-    items: Array<{ product_id: number; quantity: number }>;
-    customer_id: number;
-    payment_method: string;
-    manual_exchange_rate?: number | null;
-    igtf_exempt?: boolean;
-    iva_percentage?: number;
-    reference_currency_code?: string;
-    payment_currency_code?: string;
-  }) =>
-    apiClient.post('/invoices/preview', data),
-};
+  preview: notMigrated('invoicesAPI.preview'),
+}
 
 // =============================================
-// 💰 BUDGETS API
+// 💰 BUDGETS
 // =============================================
 export const budgetsAPI = {
-  create: (data: any) =>
-    apiClient.post('/budgets', data),
-
-  confirm: (budgetId: number) =>
-    apiClient.put(`/budgets/${budgetId}/confirm`),
-};
+  create: notMigrated('budgetsAPI.create'),
+  confirm: notMigrated('budgetsAPI.confirm'),
+}
 
 // =============================================
-// 🛒 PURCHASES API
+// 🛒 PURCHASES
 // =============================================
 export const purchasesAPI = {
-  getAll: (params?: { skip?: number; limit?: number; status?: string }) =>
-    apiClient.get('/purchases', { params }),
+  getAll: (params?: { skip?: number; limit?: number; status?: string }) => {
+    let q = db().from('purchases').select('*').order('id', { ascending: false })
+    if (params?.status) q = q.eq('status', params.status)
+    const { from, to } = range(params)
+    return q.range(from, to)
+  },
 
   getById: (id: number) =>
-    apiClient.get(`/purchases/${id}`),
+    db().from('purchases').select('*, items:purchase_items(*)').eq('id', id).single(),
 
-  create: (data: any) =>
-    apiClient.post('/purchases', data),
+  create: (data: any) => db().from('purchases').insert(data).select().single(),
 
   update: (id: number, data: any) =>
-    apiClient.put(`/purchases/${id}`, data),
+    db().from('purchases').update(data).eq('id', id).select().single(),
 
-  delete: (id: number) =>
-    apiClient.delete(`/purchases/${id}`),
+  delete: (id: number) => db().from('purchases').delete().eq('id', id),
 
   updateStatus: (id: number, status: string) =>
-    apiClient.put(`/purchases/${id}/status`, null, { params: { status } }),
+    db().from('purchases').update({ status }).eq('id', id).select().single(),
 
-  getSummary: () =>
-    apiClient.get('/purchases/stats/summary'),
+  getSummary: notMigrated('purchasesAPI.getSummary'),
 
-  getPending: () =>
-    apiClient.get('/purchases/pending'),
+  getPending: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('purchases').select('*').eq('status', 'pending').range(from, to)
+  },
 
-  // ✅ NOTAS DE CRÉDITO DE COMPRAS
   createCreditNote: (purchaseId: number, data: any) =>
-    apiClient.post(`/purchases/${purchaseId}/credit-movements`, data),
+    db().from('purchase_credit_movements').insert({ ...data, purchase_id: purchaseId }).select().single(),
 
-  getCreditNotes: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/purchases/credit-movements', { params }),
-};
+  getCreditNotes: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('purchase_credit_movements').select('*').range(from, to)
+  },
+}
 
 // =============================================
-// 🔄 INVENTORY MOVEMENTS API
+// 🔄 INVENTORY MOVEMENTS
 // =============================================
 export const inventoryMovementsAPI = {
-  getAll: (params?: { skip?: number; limit?: number; movement_type?: string; product_id?: number }) =>
-    apiClient.get('/inventory/movements', { params }),
+  getAll: (params?: { skip?: number; limit?: number; movement_type?: string; product_id?: number }) => {
+    let q = db().from('inventory_movements').select('*')
+    if (params?.movement_type) q = q.eq('movement_type', params.movement_type)
+    if (params?.product_id) q = q.eq('product_id', params.product_id)
+    const { from, to } = range(params)
+    return q.range(from, to)
+  },
 
-  getById: (id: number) =>
-    apiClient.get(`/inventory/movements/${id}`),
+  getById: (id: number) => db().from('inventory_movements').select('*').eq('id', id).single(),
 
-  create: (data: any) =>
-    apiClient.post('/inventory/movements', data),
+  create: (data: any) => db().from('inventory_movements').insert(data).select().single(),
 
   getByProduct: (productId: number) =>
-    apiClient.get(`/inventory/movements/product/${productId}`),
+    db().from('inventory_movements').select('*').eq('product_id', productId),
 
   getByInvoice: (invoiceId: number) =>
-    apiClient.get(`/inventory/movements/invoice/${invoiceId}`),
+    db().from('inventory_movements').select('*').eq('invoice_id', invoiceId),
 
-  getSummary: () =>
-    apiClient.get('/inventory/movements/stats/summary'),
-
-  getByType: () =>
-    apiClient.get('/inventory/movements/stats/by-type'),
-
-  getRecent: (params?: { days?: number; limit?: number }) =>
-    apiClient.get('/inventory/movements/recent', { params }),
-};
+  getSummary: notMigrated('inventoryMovementsAPI.getSummary'),
+  getByType: notMigrated('inventoryMovementsAPI.getByType'),
+  getRecent: notMigrated('inventoryMovementsAPI.getRecent'),
+}
 
 // =============================================
-// 🏭 WAREHOUSES API
+// 🏭 WAREHOUSES
 // =============================================
 export const warehousesAPI = {
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/warehouses', { params }),
-  
-  getById: (id: number) =>
-    apiClient.get(`/warehouses/${id}`),
-  
-  create: (data: any) =>
-    apiClient.post('/warehouses', data),
-  
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('warehouses').select('*').range(from, to)
+  },
+
+  getById: (id: number) => db().from('warehouses').select('*').eq('id', id).single(),
+
+  create: (data: any) => db().from('warehouses').insert(data).select().single(),
+
   update: (id: number, data: any) =>
-    apiClient.put(`/warehouses/${id}`, data),
-  
-  delete: (id: number) =>
-    apiClient.delete(`/warehouses/${id}`),
+    db().from('warehouses').update(data).eq('id', id).select().single(),
+
+  delete: (id: number) => db().from('warehouses').delete().eq('id', id),
 
   getInventoryMovements: (warehouseId: number) =>
-    apiClient.get(`/warehouses/${warehouseId}/inventory_movements`),
+    db().from('inventory_movements').select('*').eq('warehouse_id', warehouseId),
 
-  getSummary: () =>
-    apiClient.get('/warehouses/stats/summary'),
+  getSummary: notMigrated('warehousesAPI.getSummary'),
 
   getProducts: (warehouseId: number) =>
-    apiClient.get(`/warehouses/${warehouseId}/products`),
+    db().from('warehouse_products').select('*, product:products(*)').eq('warehouse_id', warehouseId),
 
   getLowStock: (warehouseId: number, threshold?: number) =>
-    apiClient.get(`/warehouses/${warehouseId}/low-stock`, { params: { threshold } }),
-};
+    db().from('warehouse_products').select('*').eq('warehouse_id', warehouseId).lte('stock', threshold ?? 10),
+}
 
 // =============================================
-// 📦 WAREHOUSE PRODUCTS (STOCK) API
+// 📦 WAREHOUSE PRODUCTS (STOCK)
 // =============================================
 export const warehouseProductsAPI = {
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/warehouse-products', { params }),
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('warehouse_products').select('*').range(from, to)
+  },
 
   getByWarehouseAndProduct: (warehouseId: number, productId: number) =>
-    apiClient.get(`/warehouse-products/${warehouseId}/${productId}`),
+    db().from('warehouse_products').select('*').eq('warehouse_id', warehouseId).eq('product_id', productId).single(),
 
-  createOrUpdate: (data: any) =>
-    apiClient.post('/warehouse-products/', data),
+  createOrUpdate: (data: any) => db().from('warehouse_products').upsert(data).select().single(),
 
   updateStock: (warehouseId: number, productId: number, data: any) =>
-    apiClient.put(`/warehouse-products/${warehouseId}/${productId}`, data),
+    db().from('warehouse_products').update(data).eq('warehouse_id', warehouseId).eq('product_id', productId).select().single(),
 
   delete: (warehouseId: number, productId: number) =>
-    apiClient.delete(`/warehouse-products/${warehouseId}/${productId}`),
+    db().from('warehouse_products').delete().eq('warehouse_id', warehouseId).eq('product_id', productId),
 
   getByWarehouse: (warehouseId: number) =>
-    apiClient.get(`/warehouse-products/warehouse/${warehouseId}`),
+    db().from('warehouse_products').select('*').eq('warehouse_id', warehouseId),
 
   getByProduct: (productId: number) =>
-    apiClient.get(`/warehouse-products/product/${productId}`),
+    db().from('warehouse_products').select('*').eq('product_id', productId),
 
   getLowStockAll: (threshold?: number) =>
-    apiClient.get('/warehouse-products/low-stock', { params: { threshold } }),
+    db().from('warehouse_products').select('*').lte('stock', threshold ?? 10),
 
-  transferStock: (fromWarehouseId: number, toWarehouseId: number, productId: number, quantity: number) =>
-    apiClient.post('/warehouse-products/transfer', null, {
-      params: { from_warehouse_id: fromWarehouseId, to_warehouse_id: toWarehouseId, product_id: productId, quantity }
-    }),
-
-  adjustStock: (warehouseId: number, productId: number, adjustment: number, reason: string) =>
-    apiClient.post('/warehouse-products/adjust-stock', null, {
-      params: { warehouse_id: warehouseId, product_id: productId, adjustment, reason }
-    }),
-};
+  transferStock: notMigrated('warehouseProductsAPI.transferStock'),
+  adjustStock: notMigrated('warehouseProductsAPI.adjustStock'),
+}
 
 // =============================================
-// 🚚 SUPPLIERS API (PARA IMPLEMENTAR EN BACKEND)
+// 🚚 SUPPLIERS
 // =============================================
 export const suppliersAPI = {
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/suppliers', { params }),
-  
-  getById: (id: number) =>
-    apiClient.get(`/suppliers/${id}`),
-  
-  create: (data: any) =>
-    apiClient.post('/suppliers', data),
-  
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('suppliers').select('*').range(from, to)
+  },
+
+  getById: (id: number) => db().from('suppliers').select('*').eq('id', id).single(),
+
+  create: (data: any) => db().from('suppliers').insert(data).select().single(),
+
   update: (id: number, data: any) =>
-    apiClient.put(`/suppliers/${id}`, data),
-  
-  delete: (id: number) =>
-    apiClient.delete(`/suppliers/${id}`),
+    db().from('suppliers').update(data).eq('id', id).select().single(),
 
-  search: (q: string) =>
-    apiClient.get('/suppliers/search', { params: { q } }),
+  delete: (id: number) => db().from('suppliers').delete().eq('id', id),
 
-  getSummary: () =>
-    apiClient.get('/suppliers/stats/summary'),
+  search: (q: string) => db().from('suppliers').select('*').ilike('name', `%${q}%`),
 
-  getActive: () =>
-    apiClient.get('/suppliers/active'),
+  getSummary: notMigrated('suppliersAPI.getSummary'),
+  getActive: notMigrated('suppliersAPI.getActive'),
 
   getPurchases: (supplierId: number) =>
-    apiClient.get(`/suppliers/${supplierId}/purchases`),
-};
+    db().from('purchases').select('*').eq('supplier_id', supplierId),
+}
 
 // =============================================
-// 👥 CUSTOMERS API (PARA IMPLEMENTAR EN BACKEND)
+// 👥 CUSTOMERS
 // =============================================
 export const customersAPI = {
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/customers', { params }),
-  
-  getById: (id: number) =>
-    apiClient.get(`/customers/${id}`),
-  
-  create: async (data: any) => {
-    try {
-      const response = await apiClient.post('/customers', data);
-      console.log('✅ Success:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error:', error.response?.data || error.message);
-      throw error;
-    }
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('customers').select('*').range(from, to)
   },
-  
+
+  getById: (id: number) => db().from('customers').select('*').eq('id', id).single(),
+
+  create: (data: any) => db().from('customers').insert(data).select().single(),
+
   update: (id: number, data: any) =>
-    apiClient.put(`/customers/${id}`, data),
-  
-  delete: (id: number) =>
-    apiClient.delete(`/customers/${id}`),
+    db().from('customers').update(data).eq('id', id).select().single(),
 
-  search: (q: string) =>
-    apiClient.get('/customers/search', { params: { q } }),
+  delete: (id: number) => db().from('customers').delete().eq('id', id),
 
-  getSummary: () =>
-    apiClient.get('/customers/stats/summary'),
+  search: (q: string) => db().from('customers').select('*').ilike('name', `%${q}%`),
 
-  getActive: () =>
-    apiClient.get('/customers/active'),
+  getSummary: notMigrated('customersAPI.getSummary'),
+
+  getActive: () => db().from('customers').select('*').eq('status', '01'),
 
   getInvoices: (customerId: number) =>
-    apiClient.get(`/customers/${customerId}/invoices`),
+    db().from('invoices').select('*').eq('customer_id', customerId),
 
   updateCreditLimit: (customerId: number, creditLimit: number) =>
-    apiClient.put(`/customers/${customerId}/credit-limit`, { credit_limit: creditLimit }),
+    db().from('customers').update({ credit_limit: creditLimit }).eq('id', customerId).select().single(),
 
-  getCreditStatus: (customerId: number) =>
-    apiClient.get(`/customers/${customerId}/credit-status`),
-};
+  getCreditStatus: notMigrated('customersAPI.getCreditStatus'),
+}
 
 // =============================================
-// 📊 CATEGORIES API (PARA IMPLEMENTAR EN BACKEND)
+// 📊 CATEGORIES
 // =============================================
 export const categoriesAPI = {
-  getAll: () =>
-    apiClient.get('/categories'),
+  getAll: () => db().from('categories').select('*').order('name'),
 
-  list: () =>
-    apiClient.get('/categories'),
+  list: () => db().from('categories').select('*').order('name'),
 
-  getById: (id: number) =>
-    apiClient.get(`/categories/${id}`),
+  getById: (id: number) => db().from('categories').select('*').eq('id', id).single(),
 
-  getProducts: (id: number) =>
-    apiClient.get(`/categories/${id}/products`),
+  getProducts: (id: number) => db().from('products').select('*').eq('category_id', id),
 
-  create: (data: any) =>
-    apiClient.post('/categories', data),
+  create: (data: any) => db().from('categories').insert(data).select().single(),
 
   update: (id: number, data: any) =>
-    apiClient.put(`/categories/${id}`, data),
+    db().from('categories').update(data).eq('id', id).select().single(),
 
-  delete: (id: number) =>
-    apiClient.delete(`/categories/${id}`),
-};
+  delete: (id: number) => db().from('categories').delete().eq('id', id),
+}
 
 // =============================================
-// 💰 CURRENCIES API (MONEDAS)
-// =============================================
-// =============================================
-// 💱 CURRENCIES API - SISTEMA VENEZOLANO COMPLETO
+// 💱 CURRENCIES (CRUD + historial)
 // =============================================
 export const currenciesAPI = {
-  // ==================== CRUD BÁSICO ====================
-  getAll: (params?: { skip?: number; limit?: number; is_active?: boolean }) =>
-    apiClient.get('/currencies/', { params }),
+  getAll: (params?: { skip?: number; limit?: number; is_active?: boolean }) => {
+    let q = db().from('currencies').select('*')
+    if (params?.is_active !== undefined) q = q.eq('is_active', params.is_active)
+    const { from, to } = range(params)
+    return q.range(from, to)
+  },
 
-  getById: (id: number) =>
-    apiClient.get(`/currencies/${id}`),
+  getById: (id: number) => db().from('currencies').select('*').eq('id', id).single(),
 
-  create: (data: any) =>
-    apiClient.post('/currencies/', data),
+  create: (data: any) => db().from('currencies').insert(data).select().single(),
 
   update: (id: number, data: any) =>
-    apiClient.put(`/currencies/${id}`, data),
+    db().from('currencies').update(data).eq('id', id).select().single(),
 
-  delete: (id: number) =>
-    apiClient.delete(`/currencies/${id}`),
+  delete: (id: number) => db().from('currencies').delete().eq('id', id),
 
-  // ==================== TASAS DE CAMBIO ====================
+  updateRate: async (id: number, data: any) => {
+    const supabase = db()
+    const { data: currency, error } = await supabase.from('currencies').select('*').eq('id', id).single()
+    if (error || !currency) return { data: null, error }
 
-  /**
-   * Actualizar tasa de cambio con registro histórico
-   * Crea automáticamente un registro en CurrencyRateHistory
-   */
-  updateRate: (id: number, data: {
-    new_rate: string;
-    change_reason?: string;
-    change_type?: 'manual' | 'automatic_api' | 'scheduled' | 'correction';
-    change_source?: string;
-    provider_metadata?: any;
-  }) =>
-    apiClient.put(`/currencies/${id}/rate`, data),
+    const newRate = parseFloat(data.new_rate)
+    const { data: updated, error: updError } = await supabase
+      .from('currencies')
+      .update({ exchange_rate: newRate, last_rate_update: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+    if (updError) return { data: null, error: updError }
 
-  /**
-   * Obtener historial de cambios de tasa
-   * Incluye: old_rate, new_rate, diferencia, variación %, usuario, timestamp
-   */
+    await supabase.from('currency_rate_history').insert({
+      currency_id: id,
+      old_rate: currency.exchange_rate,
+      new_rate: newRate,
+      rate_difference: newRate - currency.exchange_rate,
+      change_type: data.change_type ?? 'manual',
+      change_source: data.change_source ?? null,
+      change_reason: data.change_reason ?? null,
+      provider_metadata: data.provider_metadata ?? null,
+    })
+
+    return { data: updated, error: null }
+  },
+
   getRateHistory: (id: number, limit: number = 100) =>
-    apiClient.get(`/currencies/${id}/rate/history`, { params: { limit } }),
+    db().from('currency_rate_history').select('*').eq('currency_id', id).order('changed_at', { ascending: false }).limit(limit),
 
-  /**
-   * Obtener estadísticas completas de una moneda
-   * Incluye: total cambios, última actualización, variación promedio, máxima/mínima
-   */
-  getStatistics: (id: number) =>
-    apiClient.get(`/currencies/${id}/statistics`),
+  getStatistics: notMigrated('currenciesAPI.getStatistics'),
+  setBaseCurrency: notMigrated('currenciesAPI.setBaseCurrency'),
+  convert: notMigrated('currenciesAPI.convert'),
 
-  /**
-   * Establecer una moneda como moneda base de la empresa
-   * Desactiva automáticamente la moneda base anterior
-   */
-  setBaseCurrency: (id: number) =>
-    apiClient.post(`/currencies/${id}/set-base-currency`),
+  getConversionFactors: () => db().from('currencies').select('*'),
 
-  // ==================== CONVERSIÓN ====================
+  calculateIGTF: notMigrated('currenciesAPI.calculateIGTF'),
+  getIGTFConfigs: () => db().from('igtf_config').select('*'),
+  createIGTFConfig: (data: any) => db().from('igtf_config').insert(data).select().single(),
 
-  /**
-   * Convertir monto entre monedas usando tasas configuradas
-   * @param from_currency - Moneda origen (ej: "USD")
-   * @param to_currency - Moneda destino (ej: "VES")
-   * @param amount - Monto a convertir
-   */
-  convert: (from_currency: string, to_currency: string, amount: number) =>
-    apiClient.get('/currencies/convert', {
-      params: {
-        from_currency,
-        to_currency,
-        amount
-      }
-    }),
-
-  /**
-   * Obtener todos los factores de conversión
-   * Retorna tabla con: code, name, exchange_rate, conversion_method, factor, applies_igtf
-   */
-  getConversionFactors: () =>
-    apiClient.get('/currencies/factors'),
-
-  // ==================== IGTF (IMPUESTO VENEZOLANO) ====================
-
-  /**
-   * Calcular IGTF para una transacción
-   * @param amount - Monto en moneda extranjera
-   * @param currency_id - ID de moneda
-   * @param payment_method - Método de pago (transfer, cash, etc.)
-   */
-  calculateIGTF: (amount: number, currency_id: number, payment_method: string = 'transfer') =>
-    apiClient.post('/currencies/igtf/calculate', null, {
-      params: { amount, currency_id, payment_method }
-    }),
-
-  /**
-   * Obtener configuraciones de IGTF de la empresa
-   * @param currency_id - ID de moneda (opcional, para filtrar)
-   */
-  getIGTFConfigs: (currency_id?: number) =>
-    apiClient.get('/currencies/igtf/config', {
-      params: currency_id ? { currency_id } : undefined
-    }),
-
-  /**
-   * Crear configuración personalizada de IGTF
-   * Útil para empresas con régimen especial
-   */
-  createIGTFConfig: (data: any) =>
-    apiClient.post('/currencies/igtf/config', data),
-
-  // ==================== VALIDACIÓN ====================
-
-  /**
-   * Validar código ISO 4217
-   * @param code - Código de 3 letras (ej: "USD")
-   */
-  validateISO: (code: string) =>
-    apiClient.post('/currencies/validate/iso-4217', null, {
-      params: { code }
-    }),
-};
+  validateISO: async (code: string) => {
+    const valid = /^[A-Z]{3}$/.test(code?.toUpperCase() ?? '')
+    return { data: { valid, code: code?.toUpperCase(), message: valid ? 'Código válido' : 'Código inválido' }, error: null }
+  },
+}
 
 // =============================================
-// ✅ SISTEMA ESCRITORIO: COINS API (Desktop ERP)
+// SISTEMA ESCRITORIO (pendiente de migrar)
 // =============================================
-
-/**
- * Coins API - Sistema de Monedas Desktop ERP Venezolano
- *
- * Endpoints compatibles con el sistema desktop que incluyen:
- * - Gestión de monedas con campos específicos (factor_type, rounding_type, etc.)
- * - Actualización de tasas con creación automática de coin_history
- * - Consulta de moneda base y monedas activas (show_in_browsers)
- */
 export const coinsAPI = {
-  // ==================== CONSULTAS ESPECIALES ====================
-
-  /**
-   * Obtener la moneda base de la empresa
-   * GET /coins/base
-   */
+  // En el sistema escritorio "coins" es una vista de monedas -> tabla currencies
   getBaseCoin: () =>
-    apiClient.get('/coins/base'),
+    db().from('currencies').select('*').eq('is_base_currency', true).single(),
 
-  /**
-   * Obtener solo las monedas activas que se muestran en browsers
-   * Equivalente a: show_in_browsers = true AND is_active = true
-   * GET /coins/active
-   */
   getActiveCoins: () =>
-    apiClient.get('/coins/active'),
+    db().from('currencies').select('*').eq('show_in_browsers', true).eq('is_active', true),
 
-  // ==================== CRUD BÁSICO ====================
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('currencies').select('*').range(from, to)
+  },
 
-  /**
-   * Listar todas las monedas de la empresa
-   * GET /coins
-   */
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/coins', { params }),
-
-  /**
-   * Obtener una moneda por ID
-   * GET /coins/{coin_id}
-   */
   getById: (coinId: number) =>
-    apiClient.get(`/coins/${coinId}`),
+    db().from('currencies').select('*').eq('id', coinId).single(),
 
-  /**
-   * Crear nueva moneda (Coin) - Desktop ERP
-   * POST /coins
-   *
-   * Campos del sistema desktop ERP:
-   * - code: ISO 4217 (USD, VES, EUR)
-   * - sales_aliquot: Tasa de venta
-   * - buy_aliquot: Tasa de compra
-   * - factor_type: 0 = Base, 1 = Convertida
-   * - rounding_type: Tipo de redondeo
-   * - status: "01", "02", etc.
-   */
-  create: (data: {
-    code: string;
-    name: string;
-    symbol: string;
-    sales_aliquot: number;
-    buy_aliquot?: number;
-    factor_type: number;
-    rounding_type?: number;
-    status?: string;
-    show_in_browsers?: boolean;
-    value_inventory?: boolean;
-    applies_igtf?: boolean;
-    decimal_places?: number;
-    igtf_rate?: number;
-  }) =>
-    apiClient.post('/coins', data),
+  create: (data: any) => db().from('currencies').insert(data).select().single(),
 
-  /**
-   * Actualizar moneda (Coin) - Desktop ERP
-   * PUT /coins/{coin_id}
-   */
-  update: (coinId: number, data: {
-    name?: string;
-    symbol?: string;
-    sales_aliquot?: number;
-    buy_aliquot?: number;
-    factor_type?: number;
-    rounding_type?: number;
-    status?: string;
-    show_in_browsers?: boolean;
-    value_inventory?: boolean;
-    applies_igtf?: boolean;
-    decimal_places?: number;
-    igtf_rate?: number;
-    is_active?: boolean;
-  }) =>
-    apiClient.put(`/coins/${coinId}`, data),
+  update: (coinId: number, data: any) =>
+    db().from('currencies').update(data).eq('id', coinId).select().single(),
 
-  /**
-   * Eliminar moneda (solo admin)
-   * DELETE /coins/{coin_id}
-   *
-   * Precaución: Verifica que no esté siendo usada en productos o facturas.
-   * No se puede eliminar la moneda base.
-   */
-  delete: (coinId: number) =>
-    apiClient.delete(`/coins/${coinId}`),
+  delete: (coinId: number) => db().from('currencies').delete().eq('id', coinId),
 
-  // ==================== TASAS DE CAMBIO ====================
+  updateRate: async (coinId: number, salesAliquot: number, buyAliquot?: number) => {
+    const supabase = db()
+    const { data: coin, error } = await supabase.from('currencies').select('*').eq('id', coinId).single()
+    if (error || !coin) return { data: null, error }
 
-  /**
-   * Actualizar tasa de cambio y registrar en historial
-   * PUT /coins/{coin_id}/rate?sales_aliquot={value}&buy_aliquot={value}
-   *
-   * Este endpoint actualiza el exchange_rate y crea automáticamente
-   * un registro en coin_history para mantener la auditoría del sistema desktop ERP.
-   *
-   * Retorna: { message, coin_id, old_rate, new_rate, history_id }
-   */
-  updateRate: (
-    coinId: number,
-    salesAliquot: number,
-    buyAliquot?: number
-  ) =>
-    apiClient.put(`/coins/${coinId}/rate`, null, {
-      params: {
-        sales_aliquot: salesAliquot,
-        buy_aliquot: buyAliquot || salesAliquot
-      }
-    }),
-};
+    const { data, error: updError } = await supabase
+      .from('currencies')
+      .update({ exchange_rate: salesAliquot })
+      .eq('id', coinId)
+      .select()
+      .single()
+    if (updError) return { data: null, error: updError }
 
-// =============================================
-// ✅ SISTEMA ESCRITORIO: COIN HISTORY API (Desktop ERP)
-// =============================================
+    await supabase.from('coin_history').insert({
+      currency_id: coinId,
+      sales_aliquot: salesAliquot,
+      buy_aliquot: buyAliquot ?? salesAliquot,
+      register_date: new Date().toISOString().slice(0, 10),
+      register_hour: new Date().toTimeString().slice(0, 8),
+    })
 
-/**
- * CoinHistory API - Historial de Tasas de Cambio (Desktop ERP)
- *
- * Sistema de auditoría de cambios de tasas con estructura
- * compatible con el desktop ERP venezolano (fecha y hora separadas).
- */
+    return { data, error: null }
+  },
+}
+
 export const coinHistoryAPI = {
-  /**
-   * Listar historial de monedas
-   * GET /coin-history?currency_id={id}&skip={0}&limit={100}
-   */
-  getAll: (params?: {
-    currency_id?: number;
-    skip?: number;
-    limit?: number;
-  }) =>
-    apiClient.get('/coin-history', { params }),
+  getAll: (params?: { currency_id?: number; skip?: number; limit?: number }) => {
+    let q = db().from('coin_history').select('*')
+    if (params?.currency_id) q = q.eq('currency_id', params.currency_id)
+    const { from, to } = range(params)
+    return q.order('register_date', { ascending: false }).range(from, to)
+  },
 
-  /**
-   * Obtener un registro de historial por ID
-   * GET /coin-history/{id}
-   */
-  getById: (id: number) =>
-    apiClient.get(`/coin-history/${id}`),
+  getById: (id: number) => db().from('coin_history').select('*').eq('id', id).single(),
 
-  /**
-   * Crear registro en coin_history
-   * POST /coin-history
-   */
-  create: (data: {
-    currency_id: number;
-    sales_aliquot: number;
-    buy_aliquot: number;
-    register_date: string;  // Date ISO
-    register_hour: string;  // Time ISO
-    user_id?: number;
-  }) =>
-    apiClient.post('/coin-history', data),
+  create: (data: any) => db().from('coin_history').insert(data).select().single(),
 
-  /**
-   * Importación por lotes desde desktop ERP
-   * POST /coin-history/batch
-   *
-   * Permite importar múltiples registros de historial
-   * desde el sistema desktop.
-   */
-  createBatch: (data: Array<{
-    currency_id: number;
-    sales_aliquot: number;
-    buy_aliquot: number;
-    register_date: string;
-    register_hour: string;
-    user_id?: number;
-  }>) =>
-    apiClient.post('/coin-history/batch', data),
+  createBatch: (data: any[]) => db().from('coin_history').insert(data).select(),
 
-  /**
-   * Obtener la tasa más reciente de una moneda
-   * GET /coin-history/currency/{currency_id}/latest
-   *
-   * Retorna el registro más reciente de coin_history
-   * para una moneda específica.
-   */
   getLatestByCurrency: (currencyId: number) =>
-    apiClient.get(`/coin-history/currency/${currencyId}/latest`),
-};
+    db().from('coin_history').select('*').eq('currency_id', currencyId).order('register_date', { ascending: false }).limit(1).maybeSingle(),
+}
 
 // =============================================
-// 📏 UNITS API (UNIDADES DE MEDIDA)
+// 📏 UNITS
 // =============================================
 export const unitsAPI = {
-  getAll: (params?: { skip?: number; limit?: number; active_only?: boolean }) =>
-    apiClient.get('/units', { params }),
+  getAll: (params?: { skip?: number; limit?: number; active_only?: boolean }) => {
+    let q = db().from('units').select('*')
+    if (params?.active_only) q = q.eq('is_active', true)
+    const { from, to } = range(params)
+    return q.range(from, to)
+  },
 
-  getById: (id: number) =>
-    apiClient.get(`/units/${id}`),
+  getById: (id: number) => db().from('units').select('*').eq('id', id).single(),
 
-  create: (data: any) =>
-    apiClient.post('/units', data),
+  create: (data: any) => db().from('units').insert(data).select().single(),
 
   update: (id: number, data: any) =>
-    apiClient.put(`/units/${id}`, data),
+    db().from('units').update(data).eq('id', id).select().single(),
 
-  delete: (id: number) =>
-    apiClient.delete(`/units/${id}`),
-};
+  delete: (id: number) => db().from('units').delete().eq('id', id),
+}
 
 // =============================================
-// 📊 REPORTS API (LIBRO DE VENTAS/COMPRAS SENIAT)
+// 📊 REPORTS (SENIAT) — pendiente de migrar
 // =============================================
 export const reportsAPI = {
-  // Libro de Ventas
   getSalesBook: (params: { start_date: string; end_date: string; invoice_type?: string }) =>
-    apiClient.get('/reports/sales-book', { params }),
+    db().rpc('get_sales_book', { p_start_date: params.start_date, p_end_date: params.end_date }),
 
-  // Libro de Compras
   getPurchaseBook: (params: { start_date: string; end_date: string; purchase_type?: string }) =>
-    apiClient.get('/reports/purchase-book', { params }),
+    db().rpc('get_purchase_book', { p_start_date: params.start_date, p_end_date: params.end_date }),
 
-  // Relación de Ventas (Resumen Gerencial)
   getSalesSummary: (params: { start_date: string; end_date: string; group_by?: string }) =>
-    apiClient.get('/reports/sales-summary', { params }),
+    db().rpc('get_sales_summary', {
+      p_start_date: params.start_date,
+      p_end_date: params.end_date,
+      p_group_by: params.group_by || 'month',
+    }),
 
-  // Flujo de Caja por Forma de Pago
   getCashFlow: (params: { start_date: string; end_date: string }) =>
-    apiClient.get('/reports/cash-flow', { params }),
-};
+    db().rpc('get_cash_flow', { p_start_date: params.start_date, p_end_date: params.end_date }),
+}
 
 // =============================================
-// 📄 PURCHASE CREDIT NOTES API (NOTAS DE CRÉDITO DE COMPRAS)
+// 📄 PURCHASE CREDIT NOTES
 // =============================================
 export const purchaseCreditNotesAPI = {
-  // Crear nota de crédito para una compra
   create: (purchaseId: number, data: any) =>
-    apiClient.post(`/purchases/${purchaseId}/credit-movements`, data),
+    db().from('purchase_credit_movements').insert({ ...data, purchase_id: purchaseId }).select().single(),
 
-  // Listar todas las notas de crédito de compras
-  getAll: (params?: { skip?: number; limit?: number }) =>
-    apiClient.get('/purchases/credit-movements', { params }),
-};
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('purchase_credit_movements').select('*').range(from, to)
+  },
+}
 
 // =============================================
-// 🔐 PROTECTED ROUTES API
+// 🔐 PROTECTED / HEALTH — pendiente
 // =============================================
 export const protectedAPI = {
-  protected: () =>
-    apiClient.get('/protected'),
+  protected: notMigrated('protectedAPI.protected'),
+  adminOnly: notMigrated('protectedAPI.adminOnly'),
+  managerOnly: notMigrated('protectedAPI.managerOnly'),
+}
 
-  adminOnly: () =>
-    apiClient.get('/admin-only'),
-
-  managerOnly: () =>
-    apiClient.get('/manager-only'),
-};
-
-// =============================================
-// 🏥 HEALTH CHECK API
-// =============================================
 export const healthAPI = {
-  check: () =>
-    apiClient.get('/health'),
-
-  root: () =>
-    apiClient.get('/'),
-};
+  check: notMigrated('healthAPI.check'),
+  root: notMigrated('healthAPI.root'),
+}
 
 // =============================================
-// 💰 MULTI-CURRENCY RATES API
+// 💰 RATES (BCV) — pendiente de migrar
 // =============================================
 export const ratesAPI = {
-  // Obtener tasa de hoy
-  getTodayRate: (fromCurrency: string, toCurrency: string) =>
-    apiClient.get(`/rates/today?from_currency=${fromCurrency}&to_currency=${toCurrency}`),
-
-  // Obtener tasa más reciente
-  getLatestRate: (fromCurrency: string, toCurrency: string) =>
-    apiClient.get(`/rates/latest?from_currency=${fromCurrency}&to_currency=${toCurrency}`),
-
-  // Obtener historial de tasas
-  getRateHistory: (fromCurrency: string, toCurrency: string, limit?: number) =>
-    apiClient.get(`/rates/history?from_currency=${fromCurrency}&to_currency=${toCurrency}&limit=${limit || 100}`),
-
-  // Sincronizar tasas BCV
-  syncBCVRates: (forceRefresh = false) =>
-    apiClient.post(`/rates/bcv/sync?force_refresh=${forceRefresh}`),
-
-  // Estado del servicio BCV
-  getBCVStatus: () =>
-    apiClient.get('/rates/bcv/status'),
-
-  // Convertir monto entre monedas
-  convert: (amount: number, fromCurrency: string, toCurrency: string, rateDate?: string, manualRate?: number) => {
-    let url = `/rates/convert?amount=${amount}&from_currency=${fromCurrency}&to_currency=${toCurrency}`;
-    if (rateDate) url += `&rate_date=${rateDate}`;
-    if (manualRate) url += `&manual_rate=${manualRate}`;
-    return apiClient.post(url);
+  getTodayRate: async (fromCurrency: string, toCurrency: string) => {
+    const fromId = await resolveCurrencyId(fromCurrency)
+    const toId = await resolveCurrencyId(toCurrency)
+    if (!fromId || !toId) return { data: null, error: { message: 'Moneda no encontrada' } }
+    const today = new Date().toISOString().slice(0, 10)
+    return db()
+      .from('daily_rates')
+      .select('*')
+      .eq('base_currency_id', fromId)
+      .eq('target_currency_id', toId)
+      .eq('rate_date', today)
+      .maybeSingle()
   },
 
-  // Crear tasa manual
-  createManualRate: (fromCurrency: string, toCurrency: string, rateDate: string, exchangeRate: number, notes?: string) =>
-    apiClient.post(`/rates/manual?from_currency=${fromCurrency}&to_currency=${toCurrency}&rate_date=${rateDate}&exchange_rate=${exchangeRate}${notes ? `&notes=${notes}` : ''}`),
-};
+  getLatestRate: async (fromCurrency: string, toCurrency: string) => {
+    const fromId = await resolveCurrencyId(fromCurrency)
+    const toId = await resolveCurrencyId(toCurrency)
+    if (!fromId || !toId) return { data: null, error: { message: 'Moneda no encontrada' } }
+    return db()
+      .from('daily_rates')
+      .select('*')
+      .eq('base_currency_id', fromId)
+      .eq('target_currency_id', toId)
+      .order('rate_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  },
+
+  getRateHistory: async (fromCurrency: string, toCurrency: string, limit?: number) => {
+    const fromId = await resolveCurrencyId(fromCurrency)
+    const toId = await resolveCurrencyId(toCurrency)
+    if (!fromId || !toId) return { data: null, error: { message: 'Moneda no encontrada' } }
+    return db()
+      .from('daily_rates')
+      .select('*')
+      .eq('base_currency_id', fromId)
+      .eq('target_currency_id', toId)
+      .order('rate_date', { ascending: false })
+      .limit(limit || 100)
+  },
+
+  syncBCVRates: (forceRefresh = false) =>
+    db().functions.invoke('bcv-sync', { body: { force_refresh: forceRefresh } }),
+
+  getBCVStatus: async () => {
+    const { data, error } = await db()
+      .from('daily_rates')
+      .select('*')
+      .eq('source', 'BCV')
+      .order('rate_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    return { data: { available: !!data, last_update: data?.rate_date ?? null }, error }
+  },
+
+  convert: async (amount: number, fromCurrency: string, toCurrency: string, rateDate?: string, manualRate?: number) => {
+    const rate = manualRate ?? (await ratesAPI.getLatestRate(fromCurrency, toCurrency)).data?.exchange_rate ?? null
+    if (rate == null) return { data: { amount, converted: null, rate: null }, error: { message: 'Tasa no disponible' } }
+    return { data: { amount, converted: amount * rate, rate }, error: null }
+  },
+
+  createManualRate: async (fromCurrency: string, toCurrency: string, rateDate: string, exchangeRate: number, notes?: string) => {
+    const fromId = await resolveCurrencyId(fromCurrency)
+    const toId = await resolveCurrencyId(toCurrency)
+    if (!fromId || !toId) return { data: null, error: { message: 'Moneda no encontrada' } }
+    return db()
+      .from('daily_rates')
+      .upsert(
+        {
+          base_currency_id: fromId,
+          target_currency_id: toId,
+          rate_date: rateDate,
+          exchange_rate: exchangeRate,
+          source: 'MANUAL',
+          notes: notes ?? null,
+          is_active: true,
+        },
+        { onConflict: 'company_id,base_currency_id,target_currency_id,rate_date' }
+      )
+      .select()
+      .single()
+  },
+}
 
 // =============================================
-// PRECIOS DE REFERENCIA (REF) - VENEZUELA
+// PRECIOS DE REFERENCIA — pendiente de migrar
 // =============================================
 export const referencePricesAPI = {
-  // Obtener precio de referencia de un producto
-  getProductReferencePrice: (productId: number, referenceCurrency: string = 'USD') =>
-    apiClient.get(`/reference-prices/products/${productId}/reference-price?reference_currency=${referenceCurrency}`),
+  getProductReferencePrice: async (productId: number, referenceCurrency: string = 'USD') => {
+    const { data: product, error } = await db()
+      .from('products')
+      .select('id, name, price, price_usd')
+      .eq('id', productId)
+      .single()
+    if (error || !product) return { data: null, error: error ?? { message: 'Producto no encontrado' } }
 
-  // Obtener resumen de precios para múltiples productos
-  getProductsSummary: (productIds: number[]) =>
-    apiClient.get(`/reference-prices/products/summary?product_ids=${productIds.join(',')}`),
-
-  // Calcular item de factura
-  calculateInvoiceItem: (productId: number, quantity: number, priceReferenceOverride?: number, paymentMethod: string = 'transferencia', manualExchangeRate?: number) => {
-    const body: any = { product_id: productId, quantity };
-    if (priceReferenceOverride) body.price_reference_override = priceReferenceOverride;
-
-    return apiClient.post(`/reference-prices/invoices/calculate-item?payment_method=${paymentMethod}${manualExchangeRate ? `&manual_exchange_rate=${manualExchangeRate}` : ''}`, body);
+    const priceRef = referenceCurrency === 'USD' ? product.price_usd : null
+    return {
+      data: {
+        product_id: product.id,
+        product_name: product.name,
+        price_reference: priceRef,
+        reference_currency: referenceCurrency,
+        available: priceRef != null,
+        price_legacy: product.price ?? null,
+      },
+      error: null,
+    }
   },
 
-  // Calcular totales de factura completa
-  calculateInvoiceTotals: (items: any[], customerId?: number, paymentMethod: string = 'transferencia', manualExchangeRate?: number, discountPercentage?: number) =>
-    apiClient.post('/reference-prices/invoices/calculate-totals', {
-      items,
-      customer_id: customerId,
-      payment_method: paymentMethod,
-      manual_exchange_rate: manualExchangeRate,
-      discount_percentage: discountPercentage,
-    }),
-};
+  getProductsSummary: async (productIds: number[]) => {
+    const { data: products, error } = await db()
+      .from('products')
+      .select('id, name, price, price_usd')
+      .in('id', productIds)
+    if (error) return { data: null, error }
+
+    const { rate } = await getUsdVesRate()
+    const summary = (products ?? []).map((p: any) => {
+      const priceRef = p.price_usd
+      return {
+        product_id: p.id,
+        product_name: p.name,
+        price_reference: priceRef,
+        price_ves: priceRef != null && rate != null ? round2(priceRef * rate) : null,
+        reference_currency: 'USD',
+        exchange_rate: rate,
+        has_reference_price: priceRef != null,
+      }
+    })
+    return { data: summary, error: null }
+  },
+
+  calculateInvoiceItem: async (
+    productId: number,
+    quantity: number,
+    priceReferenceOverride?: number,
+    paymentMethod: string = 'transferencia',
+    manualExchangeRate?: number,
+  ) => {
+    const { data: product, error } = await db()
+      .from('products')
+      .select('id, name, price_usd')
+      .eq('id', productId)
+      .single()
+    if (error || !product) return { data: null, error: error ?? { message: 'Producto no encontrado' } }
+
+    const priceRef = priceReferenceOverride ?? product.price_usd
+    if (priceRef == null) {
+      return { data: null, error: { message: 'El producto no tiene precio de referencia (price_usd)' } }
+    }
+
+    const { rate, source } = await getUsdVesRate(manualExchangeRate)
+    if (rate == null) {
+      return { data: null, error: { message: 'No hay tasa USD→VES disponible. Sincroniza BCV o usa tasa manual.' } }
+    }
+
+    const unitPriceTarget = round2(priceRef * rate)
+    const subtotalRef = round2(priceRef * quantity)
+    const subtotalTarget = round2(unitPriceTarget * quantity)
+
+    const ivaPercentage = 16
+    const ivaAmount = round2((subtotalTarget * ivaPercentage) / 100)
+
+    const igtfExempt = ['efectivo', 'cash'].includes(paymentMethod.toLowerCase())
+    const igtfPercentage = igtfExempt ? 0 : 3
+    const igtfAmount = igtfExempt ? 0 : round2(((subtotalTarget + ivaAmount) * 3) / 100)
+
+    const totalItem = round2(subtotalTarget + ivaAmount + igtfAmount)
+
+    return {
+      data: {
+        product_id: productId,
+        product_name: product.name,
+        quantity,
+        unit_price_reference: round2(priceRef),
+        unit_price_target: unitPriceTarget,
+        subtotal_reference: subtotalRef,
+        subtotal_target: subtotalTarget,
+        exchange_rate: rate,
+        rate_date: new Date().toISOString().slice(0, 10),
+        rate_source: source,
+        iva_percentage: ivaPercentage,
+        iva_amount: ivaAmount,
+        igtf_percentage: igtfPercentage,
+        igtf_amount: igtfAmount,
+        igtf_exempt: igtfExempt,
+        total_item: totalItem,
+      },
+      error: null,
+    }
+  },
+
+  calculateInvoiceTotals: async (
+    items: any[],
+    customerId?: number,
+    paymentMethod: string = 'transferencia',
+    manualExchangeRate?: number,
+    discountPercentage?: number,
+  ) => {
+    if (!items?.length) {
+      return { data: null, error: { message: 'La lista de items no puede estar vacía' } }
+    }
+
+    const calculated: any[] = []
+    let subtotalReference = 0
+    let subtotalTarget = 0
+    let ivaAmount = 0
+    let igtfAmount = 0
+    let exchangeRate: number | null = null
+    let rateDate: string | null = null
+    let rateSource: string | null = null
+
+    for (const item of items) {
+      const { data, error } = await referencePricesAPI.calculateInvoiceItem(
+        item.product_id,
+        item.quantity,
+        item.price_reference_override,
+        paymentMethod,
+        manualExchangeRate,
+      )
+      if (error || !data) return { data: null, error }
+      calculated.push(data)
+      subtotalReference += data.subtotal_reference
+      subtotalTarget += data.subtotal_target
+      ivaAmount += data.iva_amount
+      igtfAmount += data.igtf_amount
+      exchangeRate = data.exchange_rate
+      rateDate = data.rate_date
+      rateSource = data.rate_source
+    }
+
+    subtotalReference = round2(subtotalReference)
+    subtotalTarget = round2(subtotalTarget)
+    ivaAmount = round2(ivaAmount)
+    igtfAmount = round2(igtfAmount)
+
+    const discountAmount = discountPercentage ? round2((subtotalTarget * discountPercentage) / 100) : 0
+    const totalAmount = round2(subtotalTarget + ivaAmount + igtfAmount - discountAmount)
+
+    return {
+      data: {
+        reference_currency: 'USD',
+        payment_currency: 'VES',
+        items: calculated,
+        subtotal_reference: subtotalReference,
+        subtotal_target: subtotalTarget,
+        iva_amount: ivaAmount,
+        igtf_amount: igtfAmount,
+        discount_amount: discountAmount,
+        total_amount: totalAmount,
+        exchange_rate: exchangeRate,
+        rate_date: rateDate,
+        rate_source: rateSource,
+      },
+      error: null,
+    }
+  },
+}
 
 // =============================================
-// ✅ SISTEMA ESCRITORIO: OPERACIONES DE VENTA
+// SISTEMA ESCRITORIO: OPERACIONES DE VENTA — pendiente
 // =============================================
 export const salesOperationsAPI = {
-  // Listar todas las operaciones
-  getAll: (params?: any) =>
-    apiClient.get('/sales-operations', { params }),
+  getAll: (params?: { skip?: number; limit?: number }) => {
+    const { from, to } = range(params)
+    return db().from('sales_operations').select('*').order('id', { ascending: false }).range(from, to)
+  },
 
-  // Obtener por ID
   getById: (id: number) =>
-    apiClient.get(`/sales-operations/${id}`),
+    db()
+      .from('sales_operations')
+      .select('*, coins:sales_operation_coins(*), details:sales_operation_details(*), taxes:sales_operation_taxes(*)')
+      .eq('id', id)
+      .single(),
 
-  // Crear nueva operación
-  create: (data: any) =>
-    apiClient.post('/sales-operations', data),
+  create: (data: any) => db().from('sales_operations').insert(data).select().single(),
 
-  // Actualizar operación
   update: (id: number, data: any) =>
-    apiClient.put(`/sales-operations/${id}`, data),
+    db().from('sales_operations').update(data).eq('id', id).select().single(),
 
-  // Eliminar operación
-  delete: (id: number) =>
-    apiClient.delete(`/sales-operations/${id}`),
+  delete: (id: number) => db().from('sales_operations').delete().eq('id', id),
 
-  // ✅ Convertir operación a otro tipo
   convert: (id: number, targetType: string) =>
-    apiClient.post(`/sales-operations/${id}/convert?target_type=${targetType}`),
+    db().from('sales_operations').update({ operation_type: targetType }).eq('id', id).select().single(),
 
-  // ✅ Estadísticas
-  getStats: () =>
-    apiClient.get('/sales-operations/stats/summary'),
+  getStats: notMigrated('salesOperationsAPI.getStats'),
 
-  // ✅ Listar por tipo
   getByType: (operationType: string) =>
-    apiClient.get(`/sales-operations/type/${operationType}`),
+    db().from('sales_operations').select('*').eq('operation_type', operationType),
 
-  // ✅ Listar presupuestos
-  getBudgets: () =>
-    apiClient.get('/sales-operations/type/BUDGET'),
+  getBudgets: () => db().from('sales_operations').select('*').eq('operation_type', 'BUDGET'),
+  getOrders: () => db().from('sales_operations').select('*').eq('operation_type', 'ORDER'),
+  getDeliveryNotes: () => db().from('sales_operations').select('*').eq('operation_type', 'DELIVERYNOTE'),
+  getBills: () => db().from('sales_operations').select('*').eq('operation_type', 'BILL'),
+  getCreditNotes: () => db().from('sales_operations').select('*').eq('operation_type', 'CREDITNOTE'),
+  getDebitNotes: () => db().from('sales_operations').select('*').eq('operation_type', 'DEBITNOTE'),
+}
 
-  // ✅ Listar pedidos
-  getOrders: () =>
-    apiClient.get('/sales-operations/type/ORDER'),
-
-  // ✅ Listar órdenes de entrega
-  getDeliveryNotes: () =>
-    apiClient.get('/sales-operations/type/DELIVERYNOTE'),
-
-  // ✅ Listar facturas
-  getBills: () =>
-    apiClient.get('/sales-operations/type/BILL'),
-
-  // ✅ Listar notas de crédito
-  getCreditNotes: () =>
-    apiClient.get('/sales-operations/type/CREDITNOTE'),
-
-  // ✅ Listar notas de débito
-  getDebitNotes: () =>
-    apiClient.get('/sales-operations/type/DEBITNOTE'),
-};
-
-// =============================================
-// EXPORT DEFAULT API CLIENT
-// =============================================
-export default apiClient;
+export default db

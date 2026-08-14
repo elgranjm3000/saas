@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { useDashboardStats } from '@/hooks/useDashboard';
+import { useRealtime } from '@/hooks/useRealtime';
 import DashboardLayout from '@/components/DashboardLayout';
 import BCVRateWidget from '@/components/BCVRateWidget'; // ✅ MULTI-MONEDA
 import {
@@ -36,6 +37,8 @@ import {
 const DashboardPage = () => {
   const { user } = useAuthStore();
   const { statsCards, recentActivity, categoryProductData, monthlySalesData, refreshData, isLoading, error } = useDashboardStats();
+
+  useRealtime(['invoices', 'products', 'purchases', 'customers'], refreshData);
 
   // Colors for charts
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];

@@ -69,7 +69,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría? Esta acción no se puede deshacer.')) {
       try {
         await categoriesAPI.delete(category.id);
-        router.push('/categories');
+        router.push('/departamentos');
       } catch (error) {
         console.error('Error deleting category:', error);
         alert('Error al eliminar la categoría');
@@ -97,11 +97,11 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
             {error || 'La categoría que buscas no existe o fue eliminada.'}
           </p>
           <Link
-            href="/categories"
+            href="/departamentos"
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-[1.02] shadow-lg"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            <span className="font-light">Volver a Categorías</span>
+            <span className="font-light">Volver a Departamentos</span>
           </Link>
         </div>
       </div>
@@ -115,7 +115,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <Link
-              href="/categories"
+              href="/departamentos"
               className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -128,7 +128,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
 
           <div className="flex items-center space-x-3">
             <Link
-              href={`/categories/${category.id}/edit`}
+              href={`/departamentos/${category.id}/edit`}
               className="flex items-center px-4 py-3 text-white bg-gradient-to-r from-green-500 to-green-600 rounded-2xl hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-[1.02] shadow-lg"
             >
               <Edit className="w-4 h-4 mr-2" />
@@ -258,7 +258,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
             </div>
             <div className="p-6 space-y-3">
               <Link
-                href={`/categories/${category.id}/edit`}
+                href={`/departamentos/${category.id}/edit`}
                 className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-[1.02] shadow-lg"
               >
                 <Edit className="w-4 h-4 mr-3" />

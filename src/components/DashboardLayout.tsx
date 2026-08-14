@@ -38,7 +38,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', href: '/dashboard', active: pathname === '/dashboard' },
-    { icon: FolderTree, label: 'Categorias', href: '/categories', active: pathname.startsWith('/categories') },
+    { icon: FolderTree, label: 'Departamentos', href: '/departamentos', active: pathname.startsWith('/departamentos') },
     { icon: Warehouse, label: 'Almacenes', href: '/warehouses', active: pathname.startsWith('/warehouses') },
     { icon: Package, label: 'Productos', href: '/products', active: pathname.startsWith('/products') },
     { icon: Users, label: 'Clientes', href: '/customers', active: pathname.startsWith('/customers') },

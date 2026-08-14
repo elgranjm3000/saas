@@ -119,9 +119,9 @@ const CategoryFormPage = () => {
 
       setTimeout(() => {
         if (isEdit) {
-          router.push(`/categories/${categoryId}`);
+          router.push(`/departamentos/${categoryId}`);
         } else {
-          router.push('/categories');
+          router.push('/departamentos');
         }
       }, 1500);
 
@@ -149,7 +149,7 @@ const CategoryFormPage = () => {
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-6">
           <Link
-            href={isEdit ? `/categories/${categoryId}` : '/categories'}
+            href={isEdit ? `/departamentos/${categoryId}` : '/departamentos'}
             className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -241,7 +241,7 @@ const CategoryFormPage = () => {
             {/* Form Actions */}
             <div className="flex items-center justify-end space-x-4">
               <Link
-                href={isEdit ? `/categories/${categoryId}` : '/categories'}
+                href={isEdit ? `/departamentos/${categoryId}` : '/departamentos'}
                 className="px-6 py-3 text-gray-600 bg-white/80 border border-gray-200/60 rounded-2xl hover:bg-white hover:border-gray-300 transition-all font-light"
               >
                 Cancelar

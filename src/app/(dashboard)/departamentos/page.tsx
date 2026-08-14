@@ -96,13 +96,13 @@ const CategoriesPage = () => {
       <div className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-light text-gray-900 mb-3">Categorías</h1>
+            <h1 className="text-3xl font-light text-gray-900 mb-3">Departamentos</h1>
             <p className="text-gray-500 font-light text-lg">
               Gestiona las categorías de tus productos
             </p>
           </div>
           <Link
-            href="/categories/new"
+            href="/departamentos/new"
             className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-[1.02] shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -116,7 +116,7 @@ const CategoriesPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Total Categorías
+                  Total Departamentos
                 </p>
                 <p className="text-2xl font-light text-gray-900">{stats.total}</p>
               </div>
@@ -193,13 +193,13 @@ const CategoriesPage = () => {
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-2">
                       <Link
-                        href={`/categories/${category.id}`}
+                        href={`/departamentos/${category.id}`}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
                       <Link
-                        href={`/categories/${category.id}/edit`}
+                        href={`/departamentos/${category.id}/edit`}
                         className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
                       >
                         <Edit className="w-4 h-4" />
@@ -226,7 +226,7 @@ const CategoriesPage = () => {
               {searchTerm ? 'No se encontraron categorías con ese término de búsqueda.' : 'Comienza agregando tu primera categoría.'}
             </p>
             <Link
-              href="/categories/new"
+              href="/departamentos/new"
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-[1.02] shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />

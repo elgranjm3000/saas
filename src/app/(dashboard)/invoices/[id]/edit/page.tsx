@@ -971,7 +971,7 @@ const InvoiceFormPage = () => {
                   <div className="text-center py-12">
                     <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500">No hay productos agregados</p>
-                    <p className="text-sm text-gray-400 mt-1">Haz clic en "Agregar Producto" para comenzar</p>
+                    <p className="text-sm text-gray-400 mt-1">Haz clic en &quot;Agregar Producto&quot; para comenzar</p>
                   </div>
                 )}
               </div>

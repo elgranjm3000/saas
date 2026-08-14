@@ -401,23 +401,23 @@ export const useCurrencyStore = create<CurrencyState & CurrencyActions>()((set, 
 /**
  * Obtener moneda base de la empresa
  */
-export const getBaseCurrency = (state: CurrencyState) =>
+export const getBaseCurrency = (state: Pick<CurrencyState, 'currencies'>) =>
   state.currencies.find((c) => c.is_base_currency) || null;
 
 /**
  * Obtener monedas activas
  */
-export const getActiveCurrencies = (state: CurrencyState) =>
+export const getActiveCurrencies = (state: Pick<CurrencyState, 'currencies'>) =>
   state.currencies.filter((c) => c.is_active);
 
 /**
  * Obtener monedas que aplican IGTF
  */
-export const getIGTFCurrencies = (state: CurrencyState) =>
+export const getIGTFCurrencies = (state: Pick<CurrencyState, 'currencies'>) =>
   state.currencies.filter((c) => c.applies_igtf && c.is_active);
 
 /**
  * Obtener moneda por código
  */
-export const getCurrencyByCode = (code: string) => (state: CurrencyState) =>
+export const getCurrencyByCode = (code: string) => (state: Pick<CurrencyState, 'currencies'>) =>
   state.currencies.find((c) => c.code === code) || null;

@@ -300,7 +300,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
               {items.length === 0 && (
                 <p className="text-center text-gray-500 py-4">
-                  No hay productos agregados. Haz clic en "+ Agregar Producto".
+                  No hay productos agregados. Haz clic en &quot;+ Agregar Producto&quot;.
                 </p>
               )}
             </div>

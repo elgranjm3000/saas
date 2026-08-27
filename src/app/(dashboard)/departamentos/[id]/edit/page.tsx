@@ -62,7 +62,7 @@ const CategoryFormPage = () => {
       });
     } catch (error) {
       console.error('Error fetching category:', error);
-      setErrors({ general: 'Error al cargar la categoría' });
+      setErrors({ general: 'Error al cargar el departamento' });
     } finally {
       setInitialLoading(false);
     }
@@ -87,7 +87,7 @@ const CategoryFormPage = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'El nombre de la categoría es requerido';
+      newErrors.name = 'El nombre del departamento es requerido';
     }
 
     setErrors(newErrors);
@@ -156,10 +156,10 @@ const CategoryFormPage = () => {
           </Link>
           <div>
             <h1 className="text-3xl font-light text-gray-900 mb-2">
-              {isEdit ? 'Editar Categoría' : 'Nueva Categoría'}
+              {isEdit ? 'Editar Departamento' : 'Nuevo Departamento'}
             </h1>
             <p className="text-gray-500 font-light">
-              {isEdit ? 'Modifica la información de la categoría' : 'Completa la información para crear una nueva categoría'}
+              {isEdit ? 'Modifica la información del departamento' : 'Completa la información para crear un nuevo departamento'}
             </p>
           </div>
         </div>
@@ -171,7 +171,7 @@ const CategoryFormPage = () => {
           <div className="flex items-center">
             <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
             <p className="text-green-600 font-medium">
-              {isEdit ? 'Categoría actualizada correctamente' : 'Categoría creada correctamente'}
+              {isEdit ? 'Departamento actualizado correctamente' : 'Departamento creado correctamente'}
             </p>
           </div>
         </div>
@@ -194,12 +194,12 @@ const CategoryFormPage = () => {
             {/* Basic Information */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100">
-                <h3 className="text-xl font-light text-gray-900">Información de la Categoría</h3>
+                <h3 className="text-xl font-light text-gray-900">Información del Departamento</h3>
               </div>
               <div className="p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Nombre de la Categoría *
+                    Nombre del Departamento *
                   </label>
                   <div className="relative">
                     <FolderKanban className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -231,7 +231,7 @@ const CategoryFormPage = () => {
                       onChange={handleInputChange}
                       rows={4}
                       className="w-full pl-12 pr-4 py-3 bg-gray-50/80 border border-gray-200/60 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none"
-                      placeholder="Descripción de la categoría..."
+                      placeholder="Descripción del departamento..."
                     />
                   </div>
                 </div>
@@ -257,7 +257,7 @@ const CategoryFormPage = () => {
                   <Save className="w-4 h-4 mr-2" />
                 )}
                 <span className="font-light">
-                  {loading ? 'Guardando...' : isEdit ? 'Actualizar Categoría' : 'Crear Categoría'}
+                  {loading ? 'Guardando...' : isEdit ? 'Actualizar Departamento' : 'Crear Departamento'}
                 </span>
               </button>
             </div>
@@ -277,7 +277,7 @@ const CategoryFormPage = () => {
                   <FolderKanban className="w-12 h-12 text-gray-400" />
                 </div>
                 <h4 className="font-medium text-gray-900 mb-1">
-                  {formData.name || 'Nombre de la categoría'}
+                  {formData.name || 'Nombre del departamento'}
                 </h4>
               </div>
 
@@ -330,7 +330,7 @@ const CategoryFormPage = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-900">Organización</p>
                     <p className="text-xs text-gray-500">
-                      Las categorías ayudan a organizar mejor tu inventario
+                      Los departamentos ayudan a organizar mejor tu inventario
                     </p>
                   </div>
                 </div>

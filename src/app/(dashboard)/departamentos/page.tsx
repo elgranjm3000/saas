@@ -60,13 +60,13 @@ const CategoriesPage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este departamento?')) {
       try {
         await categoriesAPI.delete(id);
         setCategories(categories.filter(c => c.id !== id));
       } catch (error) {
         console.error('Error deleting category:', error);
-        alert('Error al eliminar la categoría');
+        alert('Error al eliminar el departamento');
       }
     }
   };
@@ -98,7 +98,7 @@ const CategoriesPage = () => {
           <div>
             <h1 className="text-3xl font-light text-gray-900 mb-3">Departamentos</h1>
             <p className="text-gray-500 font-light text-lg">
-              Gestiona las categorías de tus productos
+              Gestiona los departamentos de tus productos
             </p>
           </div>
           <Link
@@ -106,7 +106,7 @@ const CategoriesPage = () => {
             className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-[1.02] shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
-            <span className="font-light">Nueva Categoría</span>
+            <span className="font-light">Nuevo Departamento</span>
           </Link>
         </div>
 
@@ -148,7 +148,7 @@ const CategoriesPage = () => {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Buscar categorías..."
+            placeholder="Buscar departamentos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-gray-50/80 border border-gray-200/60 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
@@ -162,7 +162,7 @@ const CategoriesPage = () => {
           <table className="w-full">
             <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                <th className="text-left py-4 px-6 font-medium text-gray-700">Categoría</th>
+                <th className="text-left py-4 px-6 font-medium text-gray-700">Departamento</th>
                 <th className="text-left py-4 px-6 font-medium text-gray-700">Descripción</th>
                 <th className="text-left py-4 px-6 font-medium text-gray-700">Productos</th>
                 <th className="text-left py-4 px-6 font-medium text-gray-700">Acciones</th>
@@ -221,16 +221,16 @@ const CategoriesPage = () => {
         {filteredCategories.length === 0 && !loading && (
           <div className="p-12 text-center">
             <FolderKanban className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-light text-gray-900 mb-2">No hay categorías</h3>
+            <h3 className="text-xl font-light text-gray-900 mb-2">No hay departamentos</h3>
             <p className="text-gray-500 mb-6">
-              {searchTerm ? 'No se encontraron categorías con ese término de búsqueda.' : 'Comienza agregando tu primera categoría.'}
+              {searchTerm ? 'No se encontraron departamentos con ese término de búsqueda.' : 'Comienza agregando tu primer departamento.'}
             </p>
             <Link
               href="/departamentos/new"
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-[1.02] shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />
-              <span className="font-light">Agregar Categoría</span>
+              <span className="font-light">Agregar Departamento</span>
             </Link>
           </div>
         )}

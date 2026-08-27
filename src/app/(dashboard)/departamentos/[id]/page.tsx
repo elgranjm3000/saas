@@ -57,7 +57,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
       }
     } catch (error: any) {
       console.error('Error fetching category:', error);
-      setError('Error al cargar la categoría');
+      setError('Error al cargar el departamento');
     } finally {
       setLoading(false);
     }
@@ -66,13 +66,13 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
   const handleDelete = async () => {
     if (!category) return;
 
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría? Esta acción no se puede deshacer.')) {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este departamento? Esta acción no se puede deshacer.')) {
       try {
         await categoriesAPI.delete(category.id);
         router.push('/departamentos');
       } catch (error) {
         console.error('Error deleting category:', error);
-        alert('Error al eliminar la categoría');
+        alert('Error al eliminar el departamento');
       }
     }
   };
@@ -92,9 +92,9 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
       <div className="p-6 lg:p-8">
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100 p-12 text-center">
           <FolderKanban className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-light text-gray-900 mb-2">Categoría no encontrada</h3>
+          <h3 className="text-xl font-light text-gray-900 mb-2">Departamento no encontrado</h3>
           <p className="text-gray-500 mb-6">
-            {error || 'La categoría que buscas no existe o fue eliminada.'}
+            {error || 'El departamento que buscas no existe o fue eliminado.'}
           </p>
           <Link
             href="/departamentos"
@@ -192,14 +192,14 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
           {/* Additional Details */}
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-100">
-              <h3 className="text-xl font-light text-gray-900">Detalles de la Categoría</h3>
+              <h3 className="text-xl font-light text-gray-900">Detalles del Departamento</h3>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center">
                   <FolderKanban className="w-5 h-5 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm text-gray-500">ID de la Categoría</p>
+                    <p className="text-sm text-gray-500">ID del Departamento</p>
                     <p className="font-medium text-gray-900">{category.id}</p>
                   </div>
                 </div>
@@ -262,7 +262,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
                 className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-[1.02] shadow-lg"
               >
                 <Edit className="w-4 h-4 mr-3" />
-                <span className="font-light">Editar Categoría</span>
+                <span className="font-light">Editar Departamento</span>
               </Link>
               <Link
                 href="/products"
@@ -284,7 +284,7 @@ const CategoryDetailPage = ({ params }: CategoryDetailPageProps) => {
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Categoría creada</p>
+                    <p className="text-sm font-medium text-gray-900">Departamento creado</p>
                     <p className="text-xs text-gray-500">
                       {category.created_at ? formatDate(category.created_at) : 'Fecha no disponible'}
                     </p>

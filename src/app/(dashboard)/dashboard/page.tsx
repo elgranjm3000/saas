@@ -56,26 +56,26 @@ const DashboardPage = () => {
   return (
     <div>
       <div className="p-6 lg:p-8">
-        {/* Welcome Section */}
+        {/* Welcome Section con nuevo diseño */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-light text-gray-900 mb-3">
+              <h1 className="text-3xl font-light mb-3" style={{ color: 'var(--color-primary)' }}>
                 ¡Bienvenido de vuelta{user?.username ? `, ${user.username}` : ''}!
               </h1>
-              <p className="text-gray-500 font-light text-lg">
+              <p className="font-light text-lg" style={{ color: 'var(--color-text-light)' }}>
                 Aquí tienes un resumen de la actividad de tu empresa hoy.
               </p>
             </div>
-            
+
             <button
               onClick={refreshData}
               disabled={isLoading}
-              className="flex items-center px-4 py-3 text-gray-600 bg-white/80 border border-gray-200/60 rounded-2xl hover:bg-white hover:border-gray-300 transition-all disabled:opacity-50"
+              className="erp-card flex items-center px-4 py-3 transition-all disabled:opacity-50 hover:shadow-md"
               title="Actualizar datos"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              <span className="font-light">Actualizar</span>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} style={{ color: 'var(--color-primary)' }} />
+              <span className="font-medium" style={{ color: 'var(--color-text)' }}>Actualizar</span>
             </button>
           </div>
         </div>
@@ -87,54 +87,58 @@ const DashboardPage = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-8 bg-red-50/80 border border-red-200 rounded-2xl p-4">
-            <p className="text-red-600 text-sm">{error}</p>
-            <button 
+          <div className="mb-8 erp-card p-4" style={{ borderLeftColor: 'var(--color-danger)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{error}</p>
+            <button
               onClick={refreshData}
-              className="mt-2 text-red-700 hover:text-red-800 text-sm font-medium"
+              className="mt-2 text-sm font-medium hover:underline"
+              style={{ color: 'var(--color-danger)' }}
             >
               Intentar de nuevo
             </button>
           </div>
         )}
 
-        {/* Stats Cards */}
+        {/* Stats Cards con nuevo diseño */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {statsCards.map((card, index) => {
             const Icon = getIconForCard(card.title);
+            const borderColors = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-success)', 'var(--color-warning)'];
+            const iconColors = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-success)', 'var(--color-warning)'];
+
             return (
-              <div key={index} className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-gray-100 hover:shadow-xl hover:shadow-gray-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div key={index} className="erp-stat-card group" style={{ borderLeftColor: borderColors[index % borderColors.length] }}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                    <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-light)' }}>
                       {card.title}
                     </p>
                     <div className="flex items-center mb-3">
                       {isLoading ? (
                         <div className="flex items-center">
-                          <Loader2 className="w-6 h-6 animate-spin text-gray-400 mr-2" />
-                          <div className="w-16 h-6 bg-gray-200 rounded animate-pulse"></div>
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" style={{ color: 'var(--color-text-light)' }} />
+                          <div className="w-16 h-6 rounded animate-pulse" style={{ background: 'var(--color-text-light)', opacity: 0.3 }}></div>
                         </div>
                       ) : (
-                        <p className="text-2xl font-light text-gray-900">
+                        <p className="erp-stat-value">
                           {card.value}
                         </p>
                       )}
                     </div>
                     <div className="flex items-center">
                       <TrendingUp className={`w-4 h-4 mr-2 ${
-                        card.changeType === 'positive' ? 'text-green-500' : 
+                        card.changeType === 'positive' ? 'text-green-500' :
                         card.changeType === 'negative' ? 'text-red-500' : 'text-orange-500'
-                      }`} />
+                      }}`} />
                       <span className={`text-sm font-medium ${
-                        card.changeType === 'positive' ? 'text-green-600' : 
+                        card.changeType === 'positive' ? 'text-green-600' :
                         card.changeType === 'negative' ? 'text-red-600' : 'text-orange-600'
                       }`}>
                         {card.change}
                       </span>
                     </div>
                   </div>
-                  <div className={`w-14 h-14 bg-gradient-to-br ${card.gradient} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform" style={{ background: iconColors[index % iconColors.length] }}>
                     <Icon className="w-7 h-7 text-white" />
                   </div>
                 </div>
@@ -143,12 +147,12 @@ const DashboardPage = () => {
           })}
         </div>
 
-        {/* Charts Section */}
+        {/* Charts Section con nuevo diseño */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
           {/* Products by Category Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h3 className="text-xl font-light text-gray-900">Productos por Categoría</h3>
+          <div className="erp-card overflow-hidden">
+            <div className="p-6 border-b" style={{ borderColor: 'var(--color-neutral)' }}>
+              <h3 className="text-xl font-light" style={{ color: 'var(--color-primary)' }}>Productos por Categoría</h3>
             </div>
             <div className="p-6">
               <ResponsiveContainer width="100%" height={300}>
@@ -174,9 +178,9 @@ const DashboardPage = () => {
           </div>
 
           {/* Sales vs Purchases Chart */}
-          <div className="xl:col-span-2 bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h3 className="text-xl font-light text-gray-900">Ventas vs Compras (Mensual)</h3>
+          <div className="xl:col-span-2 erp-card overflow-hidden">
+            <div className="p-6 border-b" style={{ borderColor: 'var(--color-neutral)' }}>
+              <h3 className="text-xl font-light" style={{ color: 'var(--color-primary)' }}>Ventas vs Compras (Mensual)</h3>
             </div>
             <div className="p-6">
               <ResponsiveContainer width="100%" height={300}>
@@ -188,8 +192,8 @@ const DashboardPage = () => {
                     formatter={(value: number | undefined) => `$${(value || 0).toLocaleString()}`}
                   />
                   <Legend />
-                  <Bar dataKey="ventas" fill="#3b82f6" name="Ventas" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="compras" fill="#10b981" name="Compras" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="ventas" fill="var(--color-primary)" name="Ventas" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="compras" fill="var(--color-accent)" name="Compras" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

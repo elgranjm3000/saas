@@ -151,7 +151,7 @@ const CurrenciesPage = () => {
             onClick={() => setActiveTab('converter')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'converter'
-                ? 'bg-blue-600 text-white'
+                ? 'btn-primary'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -162,7 +162,7 @@ const CurrenciesPage = () => {
             onClick={() => setActiveTab('igtf')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'igtf'
-                ? 'bg-blue-600 text-white'
+                ? 'btn-primary'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -175,26 +175,26 @@ const CurrenciesPage = () => {
         {activeTab === 'list' && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+              <div className="erp-stat-card" style={{ borderLeftColor: 'var(--color-accent)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Monedas</p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                    <p className="text-sm font-medium uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-light)' }}>Total Monedas</p>
+                    <p className="erp-stat-value">
                       {stats.total}
                     </p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-blue-500 opacity-20" />
+                  <DollarSign className="w-10 h-10" style={{ color: 'var(--color-accent)', opacity: 0.3 }} />
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+              <div className="erp-stat-card" style={{ borderLeftColor: 'var(--color-success)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Moneda Base</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-sm font-medium uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-light)' }}>Moneda Base</p>
+                    <p className="erp-stat-value">
                       {stats.baseCurrency}
                     </p>
                   </div>
-                  <CheckCircle className="w-10 h-10 text-green-500 opacity-20" />
+                  <CheckCircle className="w-10 h-10" style={{ color: 'var(--color-success)', opacity: 0.3 }} />
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">

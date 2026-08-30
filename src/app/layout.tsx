@@ -1,13 +1,30 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import './erp-theme.css'
+import { Inter, Source_Code_Pro, JetBrains_Mono } from 'next/font/google'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/ui/Toast'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+const sourceCodePro = Source_Code_Pro({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+})
 
 export const metadata = {
-  title: 'Chrystal Software Administrativo',
-  description: 'Sistema de planificación de recursos empresariales',
+  title: 'Chrystal Software Administrativo | ERP',
+  description: 'Sistema de gestión empresarial multi-tenant para negocios venezolanos',
   icons: {
     icon: '/favicon.png',
     apple: '/favicon.png',
@@ -21,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${sourceCodePro.variable} ${jetbrainsMono.variable}`}>
         <ErrorBoundary>
           {children}
         </ErrorBoundary>

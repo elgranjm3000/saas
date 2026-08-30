@@ -178,43 +178,40 @@ const InvoicesPage = () => {
     const overdue = isOverdue(invoice);
 
     return (
-      <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-gray-100 hover:shadow-xl hover:shadow-gray-500/10 transition-all duration-300 hover:-translate-y-1">
+      <div className="erp-card group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium" style={{ color: 'var(--color-text)' }}>
                 {invoice.invoice_number}
               </h3>
               <CurrencyBadge currencyId={invoice.currency_id || null} size="sm" />
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{ color: 'var(--color-text-light)' }}>
               {invoice.customer_name || `Cliente #${invoice.customer_id}`}
             </p>
           </div>
-          <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors opacity-0 group-hover:opacity-100">
+          <button className="p-2 rounded-xl transition-colors opacity-0 group-hover:opacity-100 hover:bg-[var(--color-neutral)]" style={{ color: 'var(--color-text-light)' }}>
             <MoreVertical className="w-4 h-4" />
           </button>
         </div>
 
         <div className="space-y-3 mb-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 flex items-center">
+            <span className="text-sm flex items-center" style={{ color: 'var(--color-text-light)' }}>
               <Calendar className="w-4 h-4 mr-2" />
               {formatDate(invoice.date)}
             </span>
-            <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${
-              invoice.status === 'factura'
-                ? 'bg-blue-100 text-blue-700'
-                : invoice.status === 'pagada'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-700'
+            <span className={`erp-badge ${
+              invoice.status === 'pagada' ? 'success' :
+              invoice.status === 'pendiente' ? 'warning' : 'success'
             }`}>
               {invoice.status}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">Vencimiento</span>
-            <span className={`text-sm ${overdue ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+            <span className="text-sm" style={{ color: 'var(--color-text-light)' }}>Vencimiento</span>
+            <span className={`text-sm ${overdue ? 'font-medium' : ''} ${overdue ? 'text-red-600' : ''}`} style={{ color: overdue ? 'var(--color-danger)' : 'var(--color-text)' }}>
               {dueDate ? formatDate(dueDate) : '-'}
             </span>
           </div>

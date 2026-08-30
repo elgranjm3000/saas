@@ -123,8 +123,8 @@ const UnitsPage = () => {
       <div className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-light text-gray-900 mb-3">Unidades de Medida</h1>
-            <p className="text-gray-500 font-light text-lg">
+            <h1 className="text-3xl font-light mb-3" style={{ color: 'var(--color-primary)' }}>Unidades de Medida</h1>
+            <p className="font-light text-lg" style={{ color: 'var(--color-text-light)' }}>
               Gestiona las unidades de medida de tus productos
             </p>
           </div>

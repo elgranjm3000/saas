@@ -76,16 +76,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }, [userMenuOpen]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="flex min-h-screen bg-[var(--color-neutral)]">
+      {/* Sidebar con nuevo diseño */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200
+        fixed inset-y-0 left-0 z-50 w-64 erp-sidebar
         transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:inset-0 lg:z-auto
       `}>
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-white/20">
           <div className="flex items-center">
             <img
               src="/logo.webp"
@@ -95,9 +95,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-white" />
           </button>
         </div>
         
@@ -108,15 +108,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               <Link
                 key={index}
                 href={item.href}
-                className={`group flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                  item.active
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                className={`erp-sidebar-item flex items-center px-3 py-2 text-sm rounded-lg transition-all ${
+                  item.active ? 'active' : ''
                 }`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className={`mr-3 h-4 w-4 ${
-                  item.active ? 'text-white' : 'text-gray-400'
+                  item.active ? 'text-white' : 'text-white/80'
                 }`} />
                 <span className="font-medium">{item.label}</span>
               </Link>
@@ -125,13 +123,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </nav>
 
         {/* Company Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/20">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-              <Building2 className="w-4 h-4 text-gray-500" />
+            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center mr-3">
+              <Building2 className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-white truncate">
                 {user?.company?.name || 'Mi Empresa'}
               </p>
             </div>
@@ -141,8 +139,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        {/* Header con nuevo diseño */}
+        <header className="currency-header sticky top-0 z-30">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center">
               <button

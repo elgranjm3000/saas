@@ -392,10 +392,10 @@ const ProductsPage = () => {
     const quantity = product.stock_quantity || product.quantity;
 
     return (
-      <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-gray-100 hover:shadow-xl hover:shadow-gray-500/10 transition-all duration-300 hover:-translate-y-1">
+      <div className="erp-card group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
         <div className="flex items-start justify-between mb-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
-            <Package className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'var(--color-primary)' }}>
+            <Package className="w-8 h-8 text-white" />
           </div>
           <div className="flex items-center space-x-2">
             <Link

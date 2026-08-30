@@ -94,27 +94,30 @@ const SuppliersPage = () => {
 
   const SupplierCard = ({ supplier }: { supplier: Supplier }) => {
     return (
-      <div className="group bg-white/80 backdrop-blur-sm rounded-3xl p-6 border border-gray-100 hover:shadow-xl hover:shadow-gray-500/10 transition-all duration-300 hover:-translate-y-1">
+      <div className="erp-card group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
         <div className="flex items-start justify-between mb-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center">
-            <Truck className="w-8 h-8 text-orange-600" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'var(--color-warning)' }}>
+            <Truck className="w-8 h-8 text-white" />
           </div>
           <div className="flex items-center space-x-2">
             <Link
               href={`/suppliers/${supplier.id}`}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+              className="p-2 rounded-xl transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+              style={{ color: 'var(--color-text-light)' }}
             >
               <Eye className="w-4 h-4" />
             </Link>
             <Link
               href={`/suppliers/${supplier.id}/edit`}
-              className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+              className="p-2 rounded-xl transition-colors hover:bg-[var(--color-success)] hover:text-white"
+              style={{ color: 'var(--color-text-light)' }}
             >
               <Edit className="w-4 h-4" />
             </Link>
-            <button 
+            <button
               onClick={() => handleDelete(supplier.id)}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+              className="p-2 rounded-xl transition-colors hover:bg-[var(--color-danger)] hover:text-white"
+              style={{ color: 'var(--color-text-light)' }}
             >
               <Trash2 className="w-4 h-4" />
             </button>

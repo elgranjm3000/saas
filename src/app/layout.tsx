@@ -1,5 +1,5 @@
 import './globals.css'
-import '../styles/erp-theme.css'
+import '../styles/erp-modern.css'
 import { Inter, Source_Code_Pro, JetBrains_Mono } from 'next/font/google'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/ui/Toast'

@@ -1,0 +1,725 @@
+/*
+  SISTEMA DE DISEÑO ERP MODERNO MINIMALISTA
+  Inspirado en Linear, Raycast, y sistemas SaaS 2024-2025
+  Enfoque: Alto contraste, minimalismo, accesibilidad
+*/
+
+:root {
+  /* PALETA MODERNA MINIMALISTA - Alto Contraste WCAG AA */
+  --color-bg-primary: #FFFFFF;         /* Blanco puro */
+  --color-bg-secondary: #F9FAFB;       /* Gris muy claro */
+  --color-bg-tertiary: #F3F4F6;        /* Gris claro */
+  --color-bg-hover: #E5E7EB;           /* Gris medio */
+
+  --color-text-primary: #111827;       /* Negro casi puro */
+  --color-text-secondary: #4B5563;     /* Gris oscuro */
+  --color-text-tertiary: #9CA3AF;      /* Gris medio */
+  --color-text-inverse: #FFFFFF;        /* Blanco */
+
+  --color-border-subtle: #E5E7EB;      /* Bordes sutiles */
+  --color-border-default: #D1D5DB;    /* Bordes estándar */
+  --color-border-strong: #374151;     /* Bordes énfasis */
+
+  /* COLORES SEMÁNTICOS - Alto Contraste */
+  --color-primary: #2563EB;            /* Azul vibrante moderno */
+  --color-primary-light: #3B82F6;       /* Azul claro */
+  --color-primary-dark: #1D4ED8;         /* Azul oscuro */
+
+  --color-success: #059669;            /* Verde moderno */
+  --color-success-light: #10B981;       /* Verde claro */
+  --color-success-bg: #ECFDF5;          /* Verde fondo */
+
+  --color-warning: #D97706;            /* Amber moderno */
+  --color-warning-light: #F59E0B;       /* Amber claro */
+  --color-warning-bg: #FEF3C7;          /* Amber fondo */
+
+  --color-danger: #DC2626;              /* Rojo moderno */
+  --color-danger-light: #EF4444;       /* Rojo claro */
+  --color-danger-bg: #FEE2E2;           /* Rojo fondo */
+
+  --color-info: #0891B2;               /* Cyan moderno */
+  --color-info-bg: #E0F2FE;             /* Cyan fondo */
+
+  /* SOMBRA SUAVE - Minimalismo */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* ESPACIADO MODULAR - 8px base unit */
+  --space-1: 0.5rem;   /* 8px */
+  --space-2: 1rem;     /* 16px */
+  --space-3: 1.5rem;   /* 24px */
+  --space-4: 2rem;     /* 32px */
+  --space-5: 2.5rem;   /* 40px */
+  --space-6: 3rem;     /* 48px */
+  --space-8: 4rem;     /* 64px */
+  --space-10: 5rem;    /* 80px */
+  --space-12: 6rem;    /* 96px */
+  --space-16: 8rem;    /* 128px */
+
+  /* BORDES MODERNOS - 1px sutiles */
+  --border-radius-sm: 6px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-2xl: 20px;
+
+  /* TRANSICIONES MODERNAS */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* TIPOGRAFÍA MODERNA - Inter + Inter Tight */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@400;500;600&display=swap');
+
+:root {
+  --font-display: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* DISPLAY TYPE - Headlines */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; }
+h2 { font-size: 1.75rem; font-weight: 600; }
+h3 { font-size: 1.5rem; font-weight: 600; }
+h4 { font-size: 1.25rem; font-weight: 600; }
+h5 { font-size: 1.125rem; font-weight: 600; }
+h6 { font-size: 1rem; font-weight: 600; }
+
+/* BODY TEXT - Content */
+p {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* MONO - Code/Data */
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* CARD MODERNOS MINIMALISTAS */
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-base);
+}
+
+.card:hover {
+  border-color: var(--color-border-default);
+  box-shadow: var(--shadow-md);
+}
+
+.card-elevated {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+/* INPUTS MODERNOS */
+.input {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-md);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* BOTONES MODERNOS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-default);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
+.btn-danger:hover {
+  background: var(--color-danger-light);
+}
+
+/* BADGES MODERNOS */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.badge-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.badge-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.badge-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* TABLAS MODERNAS */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.table th {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--color-text-primary);
+}
+
+.table td {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 0.75rem 1rem;
+  color: var(--color-text-secondary);
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* STATS CARDS MODERNOS */
+.stat-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-4);
+  position: relative;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ICON BUTTONS MODERNOS */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+
+.icon-btn:active {
+  transform: scale(0.98);
+}
+
+/* DIVIDERS MODERNOS */
+.divider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  border: none;
+  margin: var(--space-4) 0;
+}
+
+/* FOCUS VISIBLE - Accesibilidad */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* SKIP LINK - Accesibilidad */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  padding: var(--space-2) var(--space-4);
+  z-index: 9999;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+/* RESPONSIVE - Mobile First */
+@media (max-width: 768px) {
+  :root {
+    --space-4: 1.5rem;
+    --space-6: 2rem;
+    --space-8: 3rem;
+  }
+
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+}
+
+/* REDUCED MOTION - Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* DARK MODE - Alto Contraste */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #09090B;
+    --color-bg-secondary: #1C1C1E;
+    --color-bg-tertiary: #2D2D30;
+    --color-bg-hover: #1F1F1F;
+
+    --color-text-primary: #F9FAFB;
+    --color-text-secondary: #D1D5DB;
+    --color-text-tertiary: #9CA3AF;
+    --color-text-inverse: #111827;
+
+    --color-border-subtle: #2D2D30;
+    --color-border-default: #374151;
+    --color-border-strong: #6B7280;
+
+    --color-primary: #3B82F6;
+    --color-primary-light: #60A5FA;
+    --color-primary-dark: #2563EB;
+
+    --color-success: #34D399;
+    --color-success-light: #4ADE80;
+    --color-success-bg: rgba(52, 211, 153, 0.1);
+
+    --color-warning: #F59E0B;
+    --color-warning-light: #FBBF24;
+    --color-warning-bg: rgba(251, 191, 36, 0.1);
+
+    --color-danger: #EF4444;
+    --color-danger-light: #F87171;
+    --color-danger-bg: rgba(239, 68, 68, 0.1);
+
+    --color-info: #22D3EE;
+    --color-info-bg: rgba(34, 211, 238, 0.1);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* CUSTOM ERP COMPONENTS */
+.erp-header {
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: var(--space-4) var(--space-6);
+}
+
+/* SIDEBAR MODERNO - Sin gradientes */
+.erp-sidebar {
+  background: var(--color-text-primary);
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.erp-sidebar-item {
+  color: var(--color-text-tertiary);
+  border-left: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.erp-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-bg-primary);
+  border-left-color: var(--color-primary);
+}
+
+.erp-sidebar-item.active {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-bg-primary);
+  border-left-color: var(--color-primary);
+}
+
+/* HEADER MODERNO - Sin gradientes */
+.currency-header {
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.erp-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.erp-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-default);
+}
+
+.erp-card-elevated {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-6);
+}
+
+.erp-input {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-md);
+  padding: 0.625rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.erp-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.erp-btn {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--border-radius-md);
+  font-weight: 500;
+  font-family: var(--font-body);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.erp-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+.erp-btn-secondary {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+}
+
+.erp-btn-secondary:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* GRID MODERNO - 8px base unit */
+.grid-modern {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.grid-modern-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-modern-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-modern-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (min-width: 768px) {
+  .grid-modern-md-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-modern-md-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-modern-md-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* FLEX MODERNO */
+.flex-modern {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.flex-between {
+  justify-content: space-between;
+}
+
+/* SPACING MODULAR */
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+
+.mb-1 { margin-bottom: var(--space-1); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+
+/* TEXT STYLES */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-tertiary { color: var(--color-text-tertiary); }
+
+/* Legacy class mappings for compatibility */
+.erp-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.erp-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-default);
+}
+
+.erp-input {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-md);
+  padding: 0.625rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.erp-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.erp-btn {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--border-radius-md);
+  font-weight: 500;
+  font-family: var(--font-body);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.erp-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+.erp-btn-secondary {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+}
+
+.erp-btn-secondary:hover {
+  background: var(--color-bg-secondary);
+}
+
+.erp-stat-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.erp-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.erp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.erp-table thead {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.erp-table th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--color-text-primary);
+}
+
+.erp-table tbody tr {
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.erp-table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.erp-table td {
+  padding: 0.75rem 1rem;
+  color: var(--color-text-secondary);
+}
+
+.erp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.erp-badge.success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.erp-badge.warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.erp-badge.danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.text-sm { font-size: 0.875rem; }
+.text-base { font-size: 1rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.text-2xl { font-size: 1.5rem; }
+.text-3xl { font-size: 1.875rem; }
+.text-4xl { font-size: 2.25rem; }
+
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }

@@ -1,5 +1,6 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +18,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Company identifier required' }, { status: 400 })
     }
 
-    const supabase = createRouteHandlerClient({ cookies: () => ({}) })
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     // Buscar la compañía por diferentes campos
     let companyId = null
@@ -98,7 +102,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createRouteHandlerClient({ cookies: () => ({}) })
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     // Buscar compañía
     let companyId = null

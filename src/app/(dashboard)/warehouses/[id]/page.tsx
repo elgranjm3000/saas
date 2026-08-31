@@ -272,7 +272,7 @@ const WarehouseDetailPage = ({ params }: WarehouseDetailPageProps) => {
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-light text-gray-900">Productos en este Almacén</h3>
                 <Link
-                  href={`/warehouses/${warehouse.id}/products/add`}
+                  href={`/products/new?warehouse_id=${warehouse.id}&warehouse_name=${encodeURIComponent(warehouse.name)}`}
                   className="flex items-center px-4 py-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -333,7 +333,7 @@ const WarehouseDetailPage = ({ params }: WarehouseDetailPageProps) => {
                   <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">No hay productos en este almacén</p>
                   <Link
-                    href={`/warehouses/${warehouse.id}/products/add`}
+                    href={`/products/new?warehouse_id=${warehouse.id}&warehouse_name=${encodeURIComponent(warehouse.name)}`}
                     className="inline-flex items-center px-4 py-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors mt-4"
                   >
                     <Plus className="w-4 h-4 mr-2" />

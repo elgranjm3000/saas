@@ -10,12 +10,14 @@ interface ProductFormProps {
   product?: Product | any;
   onSuccess?: (product: Product) => void;
   onCancel?: () => void;
+  initialWarehouseId?: string; // Nueva prop para preseleccionar almacén
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   onSuccess,
   onCancel,
+  initialWarehouseId,
 }) => {
   // ✅ SISTEMA ESCRITORIO: Estado con todos los campos del sistema de escritorio
   const [formData, setFormData] = useState<ProductCreate>({
@@ -52,7 +54,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     stock_quantity: product?.quantity?.toString() || product?.stock_quantity?.toString() || '0',
     min_stock: product?.min_stock?.toString() || '10',
     maximum_stock: product?.maximum_stock?.toString() || '0',
-    warehouse_id: product?.warehouse_id?.toString() || '',
+    warehouse_id: initialWarehouseId || product?.warehouse_id?.toString() || '',
     allow_negative_stock: product?.allow_negative_stock || false,
     serialized: product?.serialized || false,
     use_lots: product?.use_lots || false,

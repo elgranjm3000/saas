@@ -390,7 +390,7 @@ const NewPurchasePage = () => {
         control_number: formData.control_number || null,
         transaction_type: formData.transaction_type || 'contado',
         payment_method: formData.payment_method || 'transferencia',
-        credit_days: formData.transaction_type === 'credito' ? (formData.credit_days || 30) : null,
+        credit_days: formData.transaction_type === 'credito' ? (formData.credit_days || 30) : 0,
         iva_percentage: formData.iva_percentage || 16,
         iva_amount: totals.ivaAmount,
         taxable_base: totals.taxableBase,

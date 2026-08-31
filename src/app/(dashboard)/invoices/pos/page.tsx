@@ -174,25 +174,46 @@ const POSPage = () => {
 
   const fetchProductsForWarehouse = async (warehouseId: number) => {
     try {
+      console.log('🔍 [POS] Fetching products for warehouse:', warehouseId);
+
       // Get warehouse-products: [{warehouse_id, product_id, stock}, ...]
       const warehouseProductsResponse = await warehousesAPI.getProducts(warehouseId);
       const warehouseProducts = warehouseProductsResponse.data || [];
+
+      console.log('📦 [POS] Warehouse products response:', warehouseProductsResponse);
+      console.log('📊 [POS] Number of warehouse products found:', warehouseProducts.length);
+
+      if (warehouseProducts.length === 0) {
+        console.warn('⚠️ [POS] No products found for this warehouse');
+        setProducts([]);
+        setErrors(prev => ({
+          ...prev,
+          products: 'No hay productos asociados a este almacén. Por favor agrega productos al almacén primero.'
+        }));
+        return;
+      }
 
       // Fetch complete product details for each product_id
       const productsWithStock = await Promise.all(
         warehouseProducts.map(async (wp: any) => {
           try {
+            console.log('🔄 [POS] Fetching product details for product_id:', wp.product_id);
             const productResponse = await productsAPI.getById(wp.product_id);
             const product = productResponse.data;
+
+            if (!product) {
+              console.warn('⚠️ [POS] Product not found:', wp.product_id);
+              return null;
+            }
 
             // Combine product details with warehouse stock
             return {
               ...product,
-              stock_quantity: wp.stock, // Use warehouse stock
+              stock_quantity: wp.stock || 0, // Use warehouse stock
               warehouse_id: wp.warehouse_id
             };
           } catch (error) {
-            console.error(`Error fetching product ${wp.product_id}:`, error);
+            console.error(`❌ [POS] Error fetching product ${wp.product_id}:`, error);
             return null;
           }
         })
@@ -200,10 +221,31 @@ const POSPage = () => {
 
       // Filter out null values and set products
       const validProducts = productsWithStock.filter(p => p !== null);
+      console.log('✅ [POS] Valid products loaded:', validProducts.length);
+
+      if (validProducts.length === 0) {
+        setErrors(prev => ({
+          ...prev,
+          products: 'No se pudieron cargar los detalles de los productos. Verifica que los productos estén activos.'
+        }));
+      }
+
       setProducts(validProducts);
+
+      // Clear error if successful
+      if (validProducts.length > 0) {
+        setErrors(prev => {
+          const { products, ...rest } = prev;
+          return rest;
+        });
+      }
     } catch (error) {
-      console.error('Error fetching products for warehouse:', error);
+      console.error('❌ [POS] Error fetching products for warehouse:', error);
       setProducts([]);
+      setErrors(prev => ({
+        ...prev,
+        products: `Error al cargar productos: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      }));
     }
   };
 
@@ -485,6 +527,77 @@ const POSPage = () => {
 
           {/* Products Grid/List */}
           <div className="flex-1 overflow-y-auto p-3 md:p-6">
+            {/* Product Error Message */}
+            {errors.products && (
+              <div className="mb-4 bg-yellow-50/80 border border-yellow-200 rounded-2xl p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-yellow-800 font-medium mb-1">No se pueden mostrar los productos</p>
+                    <p className="text-yellow-700 text-sm">{errors.products}</p>
+                    <button
+                      onClick={() => fetchProductsForWarehouse(selectedWarehouse?.id || 0)}
+                      className="mt-3 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* No Warehouse Selected */}
+            {!selectedWarehouse && !errors.products && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Building2 className="w-16 h-16 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona un almacén</h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Para ver los productos, primero selecciona un almacén de la lista superior
+                </p>
+                {warehouses.length === 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-md">
+                    <p className="text-blue-800 text-sm mb-3">
+                      No tienes almacenes creados. Crea uno primero para poder agregar productos.
+                    </p>
+                    <Link
+                      href="/warehouses/new"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Crear Almacén
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* No Products Found */}
+            {selectedWarehouse && !errors.products && filteredProducts.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Package className="w-16 h-16 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No hay productos disponibles</h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  {searchTerm
+                    ? `No se encontraron productos que coincidan con "${searchTerm}"`
+                    : `El almacén "${selectedWarehouse.name}" no tiene productos asociados`}
+                </p>
+                {!searchTerm && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-md">
+                    <p className="text-blue-800 text-sm mb-3">
+                      Para agregar productos a este almacén, ve a la sección de productos y selecciona este almacén al crearlos.
+                    </p>
+                    <Link
+                      href="/products/new"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Agregar Producto
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Product count indicator */}
             {filteredProducts.length > 0 && (
               <div className="mb-3 md:mb-4 text-xs md:text-sm text-gray-500">
@@ -495,7 +608,7 @@ const POSPage = () => {
               </div>
             )}
 
-            {viewMode === 'grid' ? (
+            {viewMode === 'grid' && filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
                 {filteredProducts.map(product => (
                   <button
@@ -563,25 +676,9 @@ const POSPage = () => {
                           Stock: {product.stock_quantity}
                         </span>
                       )}
-                      <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
                     </div>
                   </button>
                 ))}
-              </div>
-            )}
-
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-20">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
-                <p className="text-gray-500">
-                  {searchTerm
-                    ? 'Intenta con otro término de búsqueda'
-                    : selectedWarehouse
-                    ? `No hay productos disponibles en ${selectedWarehouse.name}`
-                    : 'Cargando productos...'
-                  }
-                </p>
               </div>
             )}
           </div>

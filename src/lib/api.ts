@@ -347,6 +347,231 @@ export const inventoryMovementsAPI = {
   getByInvoice: (invoiceId: number) =>
     db().from('inventory_movements').select('*').eq('invoice_id', invoiceId),
 
+  // 🆕 Movimiento manual de inventario (ajustes, mermas, conteos)
+  createManualMovement: async (data: {
+    company_id: number;
+    warehouse_id: number;
+    product_id: number;
+    quantity: number;  // positivo para entrada, negativo para salida
+    movement_type: 'ajuste' | 'merma' | 'conteo' | 'transferencia' | 'entrada' | 'salida';
+    description: string;
+    reference?: string;
+    notes?: string;
+  }) => {
+    const { company_id, warehouse_id, product_id, quantity, movement_type, description, reference, notes } = data;
+
+    // 1. Leer stock actual
+    const { data: current } = await db()
+      .from('warehouse_products')
+      .select('stock')
+      .eq('warehouse_id', warehouse_id)
+      .eq('product_id', product_id)
+      .maybeSingle();
+
+    const currentStock = current?.stock ?? 0;
+    const newStock = Math.max(0, currentStock + quantity);
+
+    // 2. Actualizar stock en warehouse_products
+    const { error: wpError } = await db()
+      .from('warehouse_products')
+      .upsert({
+        company_id,
+        warehouse_id,
+        product_id,
+        stock: newStock,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'warehouse_id,product_id'
+      });
+
+    if (wpError) {
+      console.error('Error al actualizar stock:', wpError);
+      return { data: null, error: wpError };
+    }
+
+    // 2. Registrar movimiento
+    const { data: movement, error: moveError } = await db()
+      .from('inventory_movements')
+      .insert({
+        company_id,
+        warehouse_id,
+        product_id,
+        quantity,
+        movement_type,
+        description: reference ? `${description} (${reference})` : description,
+        notes
+      })
+      .select()
+      .single();
+
+    if (moveError) {
+      console.error('Error al registrar movimiento:', moveError);
+      return { data: null, error: moveError };
+    }
+
+    return { data: movement, error: null };
+  },
+
+  // 🆕 Transferir stock entre almacenes
+  transferStock: async (data: {
+    company_id: number;
+    from_warehouse_id: number;
+    to_warehouse_id: number;
+    product_id: number;
+    quantity: number;
+    notes?: string;
+  }) => {
+    const { company_id, from_warehouse_id, to_warehouse_id, product_id, quantity, notes } = data;
+
+    try {
+      // 1. Verificar stock suficiente en origen
+      const { data: sourceStock } = await db()
+        .from('warehouse_products')
+        .select('stock')
+        .eq('warehouse_id', from_warehouse_id)
+        .eq('product_id', product_id)
+        .single();
+
+      if (!sourceStock || sourceStock.stock < quantity) {
+        throw new Error(`Stock insuficiente. Disponible: ${sourceStock?.stock || 0}, Requerido: ${quantity}`);
+      }
+
+      // 2. Restar del almacén origen
+      await db()
+        .from('warehouse_products')
+        .update({ stock: sourceStock.stock - quantity, updated_at: new Date().toISOString() })
+        .eq('warehouse_id', from_warehouse_id)
+        .eq('product_id', product_id);
+
+      // 3. Leer stock destino y sumar
+      const { data: destStock } = await db()
+        .from('warehouse_products')
+        .select('stock')
+        .eq('warehouse_id', to_warehouse_id)
+        .eq('product_id', product_id)
+        .maybeSingle();
+
+      const destCurrentStock = destStock?.stock ?? 0;
+
+      await db()
+        .from('warehouse_products')
+        .upsert({
+          company_id,
+          warehouse_id: to_warehouse_id,
+          product_id,
+          stock: destCurrentStock + quantity,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'warehouse_id,product_id'
+        });
+
+      // 4. Registrar movimientos
+      const { data: outMovement } = await db()
+        .from('inventory_movements')
+        .insert({
+          company_id,
+          warehouse_id: from_warehouse_id,
+          product_id,
+          quantity: -quantity,
+          movement_type: 'transferencia',
+          description: `Transferencia a almacén ${to_warehouse_id}`,
+          notes
+        })
+        .select()
+        .single();
+
+      const { data: inMovement } = await db()
+        .from('inventory_movements')
+        .insert({
+          company_id,
+          warehouse_id: to_warehouse_id,
+          product_id,
+          quantity: quantity,
+          movement_type: 'transferencia',
+          description: `Transferencia desde almacén ${from_warehouse_id}`,
+          notes
+        })
+        .select()
+        .single();
+
+      return {
+        data: {
+          out_movement: outMovement,
+          in_movement: inMovement
+        },
+        error: null
+      };
+    } catch (error: any) {
+      console.error('Error en transferencia:', error);
+      return { data: null, error };
+    }
+  },
+
+  // 🆕 Ajuste de stock (conteo físico)
+  adjustStock: async (data: {
+    company_id: number;
+    warehouse_id: number;
+    product_id: number;
+    actual_quantity: number;
+    reason: string;
+    notes?: string;
+  }) => {
+    const { company_id, warehouse_id, product_id, actual_quantity, reason, notes } = data;
+
+    // 1. Obtener stock actual
+    const { data: current } = await db()
+      .from('warehouse_products')
+      .select('stock')
+      .eq('warehouse_id', warehouse_id)
+      .eq('product_id', product_id)
+      .single();
+
+    const currentStock = current?.stock || 0;
+    const difference = actual_quantity - currentStock;
+
+    if (difference === 0) {
+      return { data: { message: 'El stock ya es correcto', difference: 0 }, error: null };
+    }
+
+    // 2. Actualizar stock
+    await db()
+      .from('warehouse_products')
+      .upsert({
+        company_id,
+        warehouse_id,
+        product_id,
+        stock: actual_quantity,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'warehouse_id,product_id'
+      });
+
+    // 3. Registrar movimiento
+    const { data: movement } = await db()
+      .from('inventory_movements')
+      .insert({
+        company_id,
+        warehouse_id,
+        product_id,
+        quantity: difference,
+        movement_type: 'conteo',
+        description: `Ajuste por conteo físico: ${reason}`,
+        notes: notes ? `${notes} (Anterior: ${currentStock}, Nuevo: ${actual_quantity})` : `Anterior: ${currentStock}, Nuevo: ${actual_quantity}`
+      })
+      .select()
+      .single();
+
+    return {
+      data: {
+        movement,
+        previous_stock: currentStock,
+        new_stock: actual_quantity,
+        difference
+      },
+      error: null
+    };
+  },
+
   getSummary: notMigrated('inventoryMovementsAPI.getSummary'),
   getByType: notMigrated('inventoryMovementsAPI.getByType'),
   getRecent: notMigrated('inventoryMovementsAPI.getRecent'),
@@ -376,7 +601,11 @@ export const warehousesAPI = {
   getSummary: notMigrated('warehousesAPI.getSummary'),
 
   getProducts: (warehouseId: number) =>
-    db().from('warehouse_products').select('*, product:products(*)').eq('warehouse_id', warehouseId),
+    db()
+      .from('warehouse_products')
+      .select('*, product:products(*)')
+      .eq('warehouse_id', warehouseId)
+      .order('product(name)', { ascending: true }),
 
   getLowStock: (warehouseId: number, threshold?: number) =>
     db().from('warehouse_products').select('*').eq('warehouse_id', warehouseId).lte('stock', threshold ?? 10),

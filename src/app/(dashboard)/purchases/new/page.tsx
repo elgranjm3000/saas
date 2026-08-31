@@ -19,7 +19,7 @@ import {
   Search,
   Building2
 } from 'lucide-react';
-import { purchasesAPI, suppliersAPI, productsAPI, warehousesAPI, warehouseProductsAPI } from '@/lib/api';
+import { purchasesAPI, suppliersAPI, warehousesAPI, warehouseProductsAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { extractErrorMessage } from '@/lib/errorHandler';
 
@@ -122,7 +122,7 @@ const NewPurchasePage = () => {
   const fetchSuppliers = async () => {
     try {
       const response = await suppliersAPI.getAll();
-      setSuppliers(response.data);
+      setSuppliers(response.data || []);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
     }
@@ -130,35 +130,48 @@ const NewPurchasePage = () => {
 
   const fetchProductsForWarehouse = async (warehouseId: number) => {
     try {
-      // Get warehouse-products: [{warehouse_id, product_id, stock}, ...]
+      console.log('🔄 [PURCHASES] Fetching products for warehouse:', warehouseId);
+
+      // Get warehouse-products with product details already included
       const warehouseProductsResponse = await warehousesAPI.getProducts(warehouseId);
       const warehouseProducts = warehouseProductsResponse.data || [];
 
-      // Fetch complete product details for each product_id
-      const productsWithStock = await Promise.all(
-        warehouseProducts.map(async (wp: any) => {
-          try {
-            const productResponse = await productsAPI.getById(wp.product_id);
-            const product = productResponse.data;
+      console.log('📦 [PURCHASES] Warehouse products response:', warehouseProducts);
 
-            // Combine product details with warehouse stock
-            return {
-              ...product,
-              stock_quantity: wp.stock, // Use warehouse stock
-              warehouse_id: wp.warehouse_id
-            };
-          } catch (error) {
-            console.error(`Error fetching product ${wp.product_id}:`, error);
+      // Process products - data already includes nested product details
+      const productsWithStock = warehouseProducts
+        .map((wp: any) => {
+          // The join returns the product under the "product" key; skip if missing
+          if (!wp.product) {
+            console.warn(`⚠️ [PURCHASES] Product ${wp.product_id} not found`);
             return null;
           }
-        })
-      );
 
-      // Filter out null values and set products
-      const validProducts = productsWithStock.filter(p => p !== null);
-      setProducts(validProducts);
+          // Combine warehouse product data with product details
+          return {
+            id: wp.product.id,
+            name: wp.product.name,
+            sku: wp.product.sku,
+            price: wp.product.price_usd || wp.product.price || 0,
+            stock_quantity: wp.stock || 0,
+            warehouse_id: wp.warehouse_id,
+            description: wp.product.description,
+            category_id: wp.product.category_id
+          };
+        })
+        .filter(p => p !== null);
+
+      console.log('✅ [PURCHASES] Valid products loaded:', productsWithStock.length);
+      console.log('📋 [PURCHASES] Products:', productsWithStock);
+
+      setProducts(productsWithStock);
+
+      // Show helpful message if no products
+      if (productsWithStock.length === 0) {
+        console.warn('⚠️ [PURCHASES] No products found for warehouse:', warehouseId);
+      }
     } catch (error) {
-      console.error('Error fetching products for warehouse:', error);
+      console.error('❌ [PURCHASES] Error fetching products for warehouse:', error);
       setProducts([]);
     }
   };
@@ -166,7 +179,7 @@ const NewPurchasePage = () => {
   const fetchWarehouses = async () => {
     try {
       const response = await warehousesAPI.getAll();
-      setWarehouses(response.data);
+      setWarehouses(response.data || []);
     } catch (error) {
       console.error('Error fetching warehouses:', error);
     }
@@ -907,9 +920,20 @@ const NewPurchasePage = () => {
                       ) : (
                         <div className="px-4 py-8 text-center">
                           <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500">
-                            {productSearch ? 'No se encontraron productos' : 'No hay productos disponibles en este almacén'}
+                          <p className="text-gray-500 text-sm font-medium mb-1">
+                            {productSearch ? 'No se encontraron productos' : 'No hay productos disponibles'}
                           </p>
+                          <p className="text-gray-400 text-xs">
+                            {productSearch
+                              ? `No hay resultados para "${productSearch}"`
+                              : `Selecciona un almacén para ver sus productos`
+                            }
+                          </p>
+                          {!productSearch && formData.warehouse_id && products.length === 0 && (
+                            <p className="text-blue-600 text-xs mt-2">
+                              💬 El almacén seleccionado no tiene productos asociados
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>

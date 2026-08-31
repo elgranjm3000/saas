@@ -342,6 +342,9 @@ const POSPage = () => {
     try {
       setLoading(true);
 
+      // Calcular totales de la factura
+      const { subtotal, taxableBase, exemptAmount, tax, total } = calculateTotals();
+
       const invoiceData = {
         customer_id: selectedCustomer.id,
         warehouse_id: selectedWarehouse.id,
@@ -357,6 +360,14 @@ const POSPage = () => {
           is_exempt: item.is_exempt
         })),
         notes: 'Venta desde POS',
+
+        // Totales
+        subtotal: subtotal,
+        iva_amount: tax,
+        taxable_base: taxableBase,
+        exempt_amount: exemptAmount,
+        total_with_taxes: total,
+        total_amount: total,
 
         // Venezuela SENIAT
         transaction_type: transactionType,

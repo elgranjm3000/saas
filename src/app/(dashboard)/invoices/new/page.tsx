@@ -47,7 +47,6 @@ interface InvoiceFormData {
   due_date: string;
   items: InvoiceItem[];
   notes: string;
-  payment_terms: string;
 
   // Multimoneda
   currency_id: number | null;
@@ -95,7 +94,6 @@ const InvoiceFormPage = () => {
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     items: [],
     notes: '',
-    payment_terms: '30',
 
     // Multimoneda - valores por defecto
     currency_id: null, // Seleccionará del store
@@ -248,7 +246,6 @@ const InvoiceFormPage = () => {
         due_date: invoice.due_date || '',
         items: mappedItems,
         notes: invoice.notes || '',
-        payment_terms: invoice.payment_terms || '30',
 
         // Multimoneda - cargar desde la factura
         currency_id: invoice.currency_id || null,
@@ -743,25 +740,6 @@ const InvoiceFormPage = () => {
                       placeholder="0"
                     />
                   </div>
-                </div>
-
-                {/* Payment Terms */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Plazo de Pago (días)
-                  </label>
-                  <select
-                    value={formData.payment_terms}
-                    onChange={(e) => setFormData(prev => ({ ...prev, payment_terms: e.target.value }))}
-                    className="w-full px-4 py-3 bg-gray-50/80 border border-gray-200/60 rounded-2xl focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                  >
-                    <option value="0">Al contado</option>
-                    <option value="7">7 días</option>
-                    <option value="15">15 días</option>
-                    <option value="30">30 días (por defecto)</option>
-                    <option value="60">60 días</option>
-                    <option value="90">90 días</option>
-                  </select>
                 </div>
 
                 {/* Venezuela SENIAT Fields */}

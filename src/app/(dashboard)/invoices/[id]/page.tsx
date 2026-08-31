@@ -59,7 +59,6 @@ interface Invoice {
   status: 'presupuesto' | 'factura' | 'pendiente' | 'pagada' | 'vencida' | 'cancelada';
   items?: InvoiceItem[];
   notes?: string;
-  payment_terms?: string;
   discount?: number;
 
   // Venezuela SENIAT

@@ -257,7 +257,10 @@ export const invoicesAPI = {
   },
 
   getById: (id: number) =>
-    db().from('invoices').select('*, items:invoice_items(*)').eq('id', id).single(),
+    db().from('invoices')
+      .select('*, items:invoice_items(*), customer:customers(*)')
+      .eq('id', id)
+      .single(),
 
   create: async (data: any) => {
     const { items, ...invoiceData } = data;

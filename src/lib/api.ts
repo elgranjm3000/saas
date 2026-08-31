@@ -122,10 +122,95 @@ export const productsAPI = {
   getById: (id: number) =>
     db().from('products').select('*, category:categories(id, name)').eq('id', id).single(),
 
-  create: (data: any) => db().from('products').insert(data).select().single(),
+  create: async (data: any) => {
+    // Extraer warehouse_id si existe para crear la relación después
+    const { warehouse_id, stock_quantity, min_stock, ...productData } = data;
 
-  update: (id: number, data: any) =>
-    db().from('products').update(data).eq('id', id).select().single(),
+    // Insertar el producto
+    const { data: product, error } = await db()
+      .from('products')
+      .insert(productData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!product) throw new Error('No se pudo crear el producto');
+
+    // Si se proporcionó warehouse_id, crear la relación en warehouse_products
+    if (warehouse_id) {
+      const warehouseProductData = {
+        warehouse_id: parseInt(warehouse_id),
+        product_id: product.id,
+        stock: stock_quantity || 0,
+        min_stock: min_stock || 10,
+        max_stock: 100,
+        is_active: true
+      };
+
+      const { error: wpError } = await db()
+        .from('warehouse_products')
+        .insert(warehouseProductData);
+
+      if (wpError) {
+        console.warn('No se pudo crear la relación warehouse_products:', wpError);
+        // No fallamos la creación del producto por esto, pero advertimos
+      }
+    }
+
+    return { data: product, error: null };
+  },
+
+  update: async (id: number, data: any) => {
+    // Extraer warehouse_id si existe para actualizar la relación
+    const { warehouse_id, stock_quantity, min_stock, ...productData } = data;
+
+    // Actualizar el producto
+    const { data: product, error } = await db()
+      .from('products')
+      .update(productData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!product) throw new Error('No se pudo actualizar el producto');
+
+    // Si se proporcionó warehouse_id, actualizar o crear la relación en warehouse_products
+    if (warehouse_id !== undefined) {
+      const warehouseProductData = {
+        warehouse_id: parseInt(warehouse_id),
+        product_id: id,
+        stock: stock_quantity || 0,
+        min_stock: min_stock || 10,
+        max_stock: 100,
+        is_active: true
+      };
+
+      // Intentar actualizar primero
+      const { data: existingWP } = await db()
+        .from('warehouse_products')
+        .select('*')
+        .eq('warehouse_id', warehouse_id)
+        .eq('product_id', id)
+        .single();
+
+      if (existingWP) {
+        // Actualizar relación existente
+        await db()
+          .from('warehouse_products')
+          .update(warehouseProductData)
+          .eq('warehouse_id', warehouse_id)
+          .eq('product_id', id);
+      } else {
+        // Crear nueva relación
+        await db()
+          .from('warehouse_products')
+          .insert(warehouseProductData);
+      }
+    }
+
+    return { data: product, error: null };
+  },
 
   delete: (id: number) => db().from('products').delete().eq('id', id),
 

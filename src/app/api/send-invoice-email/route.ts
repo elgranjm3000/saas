@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,10 +11,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar API key
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      return NextResponse.json(
+        { error: 'RESEND_API_KEY no está configurada' },
+        { status: 500 }
+      );
+    }
+
+    // Importar Resend solo cuando se necesita (lazy loading)
+    const { Resend } = await import('resend');
+    const resend = new Resend(resendApiKey);
+
     console.log('📧 Enviando factura por email:', { to, invoiceNumber });
 
     const result = await resend.emails.send({
-      from: 'erp@sistema.com',
+      from: 'onboarding@resend.dev',
       to: to,
       subject: subject || `Factura #${invoiceNumber || 'N/A'}`,
       html: invoiceHtml

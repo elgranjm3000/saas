@@ -356,7 +356,6 @@ const POSPage = () => {
           is_exempt: item.is_exempt
         })),
         notes: 'Venta desde POS',
-        payment_terms: '0',
 
         // Venezuela SENIAT
         transaction_type: transactionType,

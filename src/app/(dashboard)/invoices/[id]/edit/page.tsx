@@ -403,7 +403,6 @@ const InvoiceFormPage = () => {
           is_exempt: item.is_exempt
         })),
         notes: formData.notes,
-        payment_terms: formData.payment_terms,
 
         // Venezuela SENIAT
         transaction_type: formData.transaction_type,

@@ -413,7 +413,6 @@ const InvoiceFormPage = () => {
           is_exempt: item.is_exempt
         })),
         notes: formData.notes,
-        payment_terms: formData.payment_terms,
 
         // Multimoneda
         currency_id: formData.currency_id,

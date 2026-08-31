@@ -90,6 +90,8 @@ const InvoiceDetailPage = ({ params }: InvoiceDetailPageProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -193,22 +195,170 @@ Notas: ${invoice.notes || 'N/A'}
     }
   };
 
-  const handleSendEmail = () => {
-    if (!invoice) return;
+  const generateInvoiceHTML = () => {
+    if (!invoice) return '';
 
-    const subject = encodeURIComponent(`Factura ${invoice.invoice_number}`);
-    const body = encodeURIComponent(`
-Estimado/a ${invoice.customer_name || invoice.customer?.name},
+    const items = invoice.items || [];
+    const subtotal = invoice.subtotal || 0;
+    const ivaAmount = invoice.iva_amount || 0;
+    const totalAmount = invoice.total_with_taxes || invoice.total_amount || 0;
 
-Adjunto encontrará la factura ${invoice.invoice_number} por un total de ${formatCurrency(invoice.total_amount)}.
+    return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factura ${invoice.invoice_number}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; background: #f9fafb; }
+    .container { max-width: 600px; margin: 0 auto; padding: 32px 16px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px; border-radius: 16px 16px 0 0; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+    .header .invoice-number { margin-top: 8px; font-size: 18px; opacity: 0.95; }
+    .content { background: white; padding: 32px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 14px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .info-item label { font-size: 12px; color: #6b7280; display: block; margin-bottom: 4px; }
+    .info-item span { font-size: 14px; font-weight: 500; color: #1f2937; }
+    .items-table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+    .items-table th { background: #f3f4f6; padding: 12px 8px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; }
+    .items-table td { padding: 12px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    .items-table tr:last-child td { border-bottom: none; }
+    .items-table .text-right { text-align: right; }
+    .totals { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; margin-top: 24px; padding-top: 24px; border-top: 2px solid #e5e7eb; }
+    .total-row { display: flex; justify-content: space-between; width: 200px; }
+    .total-row span:first-child { color: #6b7280; font-size: 14px; }
+    .total-row span:last-child { font-weight: 500; color: #1f2937; font-size: 14px; }
+    .total-row.grand-total { font-weight: 700; font-size: 18px; color: #667eea; }
+    .footer { text-align: center; margin-top: 32px; padding-top: 32px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; }
+    .badge { display: inline-block; padding: 4px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Factura Electrónica</h1>
+      <div class="invoice-number">#${invoice.invoice_number || 'N/A'}</div>
+      <div class="badge">${invoice.status || 'Factura'}</div>
+    </div>
 
-Fecha de emisión: ${formatDate(invoice.date, 'long')}
-Fecha de vencimiento: ${invoice.due_date ? formatDate(invoice.due_date, 'long') : 'N/A'}
+    <div class="content">
+      <div class="info-grid">
+        <div>
+          <div class="section-title">Cliente</div>
+          <div class="info-item">
+            <label>Nombre</label>
+            <span>${invoice.customer_name || invoice.customer?.name || 'N/A'}</span>
+          </div>
+          ${invoice.customer?.email ? `
+          <div class="info-item" style="margin-top: 8px;">
+            <label>Email</label>
+            <span>${invoice.customer.email}</span>
+          </div>
+          ` : ''}
+        </div>
+        <div>
+          <div class="section-title">Factura</div>
+          <div class="info-item">
+            <label>Fecha</label>
+            <span>${formatDate(invoice.date, 'long')}</span>
+          </div>
+          <div class="info-item" style="margin-top: 8px;">
+            <label>Vencimiento</label>
+            <span>${invoice.due_date ? formatDate(invoice.due_date, 'long') : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
 
-Saludos cordiales.
-    `.trim());
+      ${items.length > 0 ? `
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th class="text-right">Cantidad</th>
+            <th class="text-right">Precio Unit.</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => `
+          <tr>
+            <td>${item.product?.name || 'Producto'}</td>
+            <td class="text-right">${item.quantity}</td>
+            <td class="text-right">${formatCurrency(item.price_per_unit || 0)}</td>
+            <td class="text-right">${formatCurrency((item.quantity || 0) * (item.price_per_unit || 0))}</td>
+          </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ` : ''}
 
-    window.location.href = `mailto:${invoice.customer?.email}?subject=${subject}&body=${body}`;
+      <div class="totals">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <span>${formatCurrency(subtotal)}</span>
+        </div>
+        ${ivaAmount > 0 ? `
+        <div class="total-row">
+          <span>IVA (16%)</span>
+          <span>${formatCurrency(ivaAmount)}</span>
+        </div>
+        ` : ''}
+        <div class="total-row grand-total">
+          <span>Total</span>
+          <span>${formatCurrency(totalAmount)}</span>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Gracias por su compra</p>
+        <p style="margin-top: 8px;">Para cualquier consulta, contacte con nosotros</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+  };
+
+  const handleSendEmail = async () => {
+    if (!invoice || !invoice.customer?.email) {
+      setError('El cliente no tiene email configurado');
+      return;
+    }
+
+    setSendingEmail(true);
+    setError(null);
+    setEmailSuccess(false);
+
+    try {
+      const response = await fetch('/api/send-invoice-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: invoice.customer.email,
+          subject: `Factura ${invoice.invoice_number || 'N/A'}`,
+          invoiceNumber: invoice.invoice_number,
+          invoiceHtml: generateInvoiceHTML()
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al enviar el email');
+      }
+
+      setEmailSuccess(true);
+      setTimeout(() => setEmailSuccess(false), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Error al enviar el email');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const getDaysUntilDue = () => {
@@ -299,10 +449,23 @@ Saludos cordiales.
             </button>
             <button
               onClick={handleSendEmail}
-              className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-2xl transition-colors"
-              title="Enviar por email"
+              disabled={sendingEmail}
+              className={`p-3 rounded-2xl transition-all ${
+                emailSuccess
+                  ? 'text-green-600 bg-green-50'
+                  : sendingEmail
+                  ? 'text-gray-400 bg-gray-100'
+                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+              }`}
+              title={emailSuccess ? 'Email enviado' : sendingEmail ? 'Enviando...' : 'Enviar por email'}
             >
-              <Send className="w-5 h-5" />
+              {sendingEmail ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : emailSuccess ? (
+                <CheckCircle className="w-5 h-5" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
             </button>
             <Link
               href={`/invoices/${invoice.id}/edit`}

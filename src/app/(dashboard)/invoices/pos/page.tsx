@@ -352,6 +352,7 @@ const POSPage = () => {
         items: cart.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
+          price_per_unit: item.product.price,
           tax_rate: item.tax_percent,
           is_exempt: item.is_exempt
         })),

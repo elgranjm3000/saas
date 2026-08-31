@@ -259,7 +259,51 @@ export const invoicesAPI = {
   getById: (id: number) =>
     db().from('invoices').select('*, items:invoice_items(*)').eq('id', id).single(),
 
-  create: (data: any) => db().from('invoices').insert(data).select().single(),
+  create: async (data: any) => {
+    const { items, ...invoiceData } = data;
+
+    // 1. Insertar la factura (sin items)
+    const { data: invoice, error } = await db()
+      .from('invoices')
+      .insert(invoiceData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!invoice) throw new Error('No se pudo crear la factura');
+
+    // 2. Insertar los items en invoice_items
+    if (items && items.length > 0) {
+      const itemsToInsert = items.map((item: any) => {
+        const qty = Number(item.quantity) || 0;
+        const price = Number(item.price_per_unit) || 0;
+        const taxRate = item.is_exempt ? 0 : (item.tax_rate ?? 16);
+
+        return {
+          invoice_id: invoice.id,
+          product_id: Number(item.product_id),
+          quantity: qty,
+          price_per_unit: price,
+          total_price: qty * price,
+          tax_rate: taxRate,
+          tax_amount: item.is_exempt ? 0 : (qty * price * taxRate / 100),
+          is_exempt: item.is_exempt ?? false,
+          base_currency_amount: item.base_currency_amount ?? (qty * price),
+          currency_id: item.currency_id ?? null,
+          exchange_rate: item.exchange_rate ?? null,
+          exchange_rate_date: item.exchange_rate_date ?? null
+        };
+      });
+
+      const { error: itemsError } = await db()
+        .from('invoice_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+    }
+
+    return { data: invoice, error: null };
+  },
 
   update: (id: number, data: any) =>
     db().from('invoices').update(data).eq('id', id).select().single(),
@@ -290,16 +334,67 @@ export const budgetsAPI = {
 // =============================================
 export const purchasesAPI = {
   getAll: (params?: { skip?: number; limit?: number; status?: string }) => {
-    let q = db().from('purchases').select('*').order('id', { ascending: false })
+    let q = db()
+      .from('purchases')
+      .select('*, items:purchase_items(*), supplier:suppliers(*)')
+      .order('id', { ascending: false })
     if (params?.status) q = q.eq('status', params.status)
     const { from, to } = range(params)
     return q.range(from, to)
   },
 
   getById: (id: number) =>
-    db().from('purchases').select('*, items:purchase_items(*)').eq('id', id).single(),
+    db()
+      .from('purchases')
+      .select('*, items:purchase_items(*, product:products(id, name, sku)), supplier:suppliers(*)')
+      .eq('id', id)
+      .single(),
 
-  create: (data: any) => db().from('purchases').insert(data).select().single(),
+  create: async (data: any) => {
+    const { items, ...purchaseData } = data;
+
+    // 1. Insertar la compra (sin items)
+    const { data: purchase, error } = await db()
+      .from('purchases')
+      .insert(purchaseData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!purchase) throw new Error('No se pudo crear la compra');
+
+    // 2. Insertar los items en purchase_items
+    if (items && items.length > 0) {
+      const itemsToInsert = items.map((item: any) => {
+        const qty = Number(item.quantity) || 0;
+        const price = Number(item.price_per_unit) || 0;
+        const taxRate = item.is_exempt ? 0 : (item.tax_rate ?? 16);
+
+        return {
+          purchase_id: purchase.id,
+          product_id: Number(item.product_id),
+          quantity: qty,
+          price_per_unit: price,
+          total_price: qty * price,
+          tax_rate: taxRate,
+          tax_amount: item.is_exempt ? 0 : (qty * price * taxRate / 100),
+          is_exempt: item.is_exempt ?? false,
+          base_currency_amount: item.base_currency_amount ?? (qty * price),
+          currency_id: item.currency_id ?? null,
+          exchange_rate: item.exchange_rate ?? null,
+          exchange_rate_date: item.exchange_rate_date ?? null
+        };
+      });
+
+      const { error: itemsError } = await db()
+        .from('purchase_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+    }
+
+    return { data: purchase, error: null };
+  },
 
   update: (id: number, data: any) =>
     db().from('purchases').update(data).eq('id', id).select().single(),

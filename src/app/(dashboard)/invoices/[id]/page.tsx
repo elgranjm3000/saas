@@ -405,6 +405,40 @@ Notas: ${invoice.notes || 'N/A'}
 
   return (
     <div className="p-6 lg:p-8">
+      {/* Email Success Notification */}
+      {emailSuccess && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center space-x-3 animate-fadeIn">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-green-800 font-medium">Factura enviada por email</p>
+            <p className="text-green-600 text-sm">El email ha sido enviado a {invoice.customer?.email}</p>
+          </div>
+          <button
+            onClick={() => setEmailSuccess(false)}
+            className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Error Notification */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center space-x-3 animate-fadeIn">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-800 font-medium">Error</p>
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
